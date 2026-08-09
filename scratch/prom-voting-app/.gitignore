@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.netlify/
+
+# Generated types
+.astro/
+
+# Environment variables
+.env
+.env.*
+!.env.example
