@@ -26,12 +26,13 @@ CREATE TABLE IF NOT EXISTS categories (
 -- Table des votes
 CREATE TABLE IF NOT EXISTS ballots (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    voter_slug TEXT UNIQUE NOT NULL,
+    voter_slug TEXT NOT NULL,
     voter_name TEXT NOT NULL,
     votes JSONB NOT NULL DEFAULT '{}'::jsonb,
     king TEXT,
     queen TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT ballots_voter_slug_key UNIQUE (voter_slug)
 );
 
 -- Activation de la Row Level Security (RLS)

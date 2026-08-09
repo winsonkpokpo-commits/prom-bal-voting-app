@@ -1,7 +1,11 @@
+import { requireAdmin } from '../../lib/admin-auth';
 import { supabase } from '../../lib/supabase';
 
-export const GET = async () => {
+export const GET = async ({ request }) => {
   try {
+    const auth = requireAdmin(request);
+    if (!auth.ok) return auth.response;
+
     const { data: ballots, error } = await supabase.from('ballots').select('*');
     if (error) throw error;
 

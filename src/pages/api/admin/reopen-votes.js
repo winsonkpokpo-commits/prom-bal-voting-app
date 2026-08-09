@@ -1,12 +1,11 @@
+import { requireAdmin } from '../../../lib/admin-auth';
 import { supabase } from '../../../lib/supabase';
 
 export const POST = async ({ request }) => {
   try {
-    const { token } = await request.json();
-    
-    if (token !== "admin_token_ok") {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), { status: 401 });
-    }
+    const body = await request.json();
+    const auth = requireAdmin(request, body.token);
+    if (!auth.ok) return auth.response;
 
     const { error } = await supabase.from('config').update({ voting_closed: false }).eq('id', 1);
 

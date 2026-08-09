@@ -1,15 +1,18 @@
+import { requireAdmin } from '../../../lib/admin-auth';
 import { supabase } from '../../../lib/supabase';
 
 export const POST = async ({ request }) => {
   try {
-    const { token, action, id, name } = await request.json();
-    if (token !== "admin_token_ok") return new Response("Non autorisé", { status: 401 });
+    const body = await request.json();
+    const { action, id, name, position } = body;
+    const auth = requireAdmin(request, body.token);
+    if (!auth.ok) return auth.response;
 
     if (action === 'add') {
-      const { error } = await supabase.from('students').insert([{ name }]);
+      const { error } = await supabase.from('categories').insert([{ name, position: position || 0 }]);
       if (error) throw error;
     } else if (action === 'delete') {
-      const { error } = await supabase.from('students').delete().eq('id', id);
+      const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) throw error;
     }
     return new Response(JSON.stringify({ success: true }), { status: 200 });
