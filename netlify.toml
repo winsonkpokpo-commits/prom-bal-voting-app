@@ -1,0 +1,6 @@
+[build]
+  # The Astro app lives in a nested directory, not the repo root.
+  base = "scratch/prom-voting-app"
+  command = "npm run build"
+  # Relative to the base directory.
+  publish = "dist"
