@@ -1,0 +1,43 @@
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/supabase-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/auth-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/functions-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/postgrest-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/realtime-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/storage-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN deprecated tsconfck@3.1.6: unmaintained
+
+added 348 packages, and audited 349 packages in 1m
+
+151 packages are looking for funding
+  run `npm fund` for details
+
+5 vulnerabilities (2 moderate, 3 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.

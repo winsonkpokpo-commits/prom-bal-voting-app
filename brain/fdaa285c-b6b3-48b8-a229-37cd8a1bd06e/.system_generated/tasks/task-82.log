@@ -1,0 +1,13 @@
+La source 'msstore' nécessite que vous consultiez les contrats suivants avant de l’utiliser.
+Terms of Transaction: https://aka.ms/microsoft-store-terms-of-transaction
+La source nécessite que la région géographique à 2 lettres de l’ordinateur actuel soit envoyée au service principal pour fonctionner correctement (par exemple, « ÉTATS-UNIS »).
+
+Trouvé Node.js (LTS) [OpenJS.NodeJS.LTS] Version 24.19.0
+La licence d’utilisation de cette application vous est octroyée par son propriétaire.
+Microsoft n’est pas responsable des paquets tiers et n’accorde pas de licences à ceux-ci.
+Téléchargement en cours https://nodejs.org/dist/v24.19.0/node-v24.19.0-x64.msi
+Le code de hachage de l’installation a été vérifié avec succès
+Démarrage du package d’installation... Merci de patienter.
+Le programme d’installation demande à s’exécuter en tant qu’administrateur. Attendez-vous à une invite.
+Échec du programme d’installation avec le code de sortie : 1603
+Le journal du programme d’installation est disponible à l’adresse suivante : C:\Users\HP\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir\OpenJS.NodeJS.LTS.24.19.0-26-08-08-21-16-06.log

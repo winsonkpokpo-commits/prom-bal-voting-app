@@ -1,0 +1,17 @@
+{
+  "name": "prom-voting-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^4.0.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "astro": "^4.5.0"
+  }
+}

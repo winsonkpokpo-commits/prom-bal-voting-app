@@ -1,0 +1,9 @@
+npm : Le terme �npm� n'est pas reconnu comme nom d'applet de commande, fonction, fichier de script ou programme 
+ex�cutable. V�rifiez l'orthographe du nom, ou si un chemin d'acc�s existe, v�rifiez que le chemin d'acc�s est correct 
+et r�essayez.
+Au caract�re Ligne:1 : 1
++ npm install
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (npm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 

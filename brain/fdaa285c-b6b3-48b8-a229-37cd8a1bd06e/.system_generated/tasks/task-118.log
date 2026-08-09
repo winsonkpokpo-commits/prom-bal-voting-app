@@ -1,0 +1,47 @@
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/supabase-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/auth-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/functions-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/postgrest-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/realtime-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/storage-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN deprecated tsconfck@3.1.6: unmaintained
+npm notice 
+npm notice New major version of npm available! 10.2.4 -> 12.0.2
+npm notice Changelog: <https://github.com/npm/cli/releases/tag/v12.0.2>
+npm notice Run `npm install -g npm@12.0.2` to update!
+npm notice 
+npm ERR! code ECONNRESET
+npm ERR! syscall read
+npm ERR! errno -4077
+npm ERR! network read ECONNRESET
+npm ERR! network This is a problem related to network connectivity.
+npm ERR! network In most cases you are behind a proxy or have bad network settings.
+npm ERR! network 
+npm ERR! network If you are behind a proxy, please make sure that the
+npm ERR! network 'proxy' config is set properly.  See: 'npm help config'
+
+npm ERR! A complete log of this run can be found in: C:\Users\HP\AppData\Local\npm-cache\_logs\2026-08-08T20_33_20_603Z-debug-0.log

@@ -1,0 +1,149 @@
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/auth-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/functions-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/postgrest-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/realtime-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/storage-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: '@supabase/supabase-js@2.112.2',
+npm WARN EBADENGINE   required: { node: '>=22.0.0' },
+npm WARN EBADENGINE   current: { node: 'v20.11.1', npm: '10.2.4' }
+npm WARN EBADENGINE }
+npm WARN cleanup Failed to remove some directories [
+npm WARN cleanup   [
+npm WARN cleanup     'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\esbuild',
+npm WARN cleanup     [Error: EBUSY: resource busy or locked, rmdir 'C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\esbuild'] {
+npm WARN cleanup       errno: -4082,
+npm WARN cleanup       code: 'EBUSY',
+npm WARN cleanup       syscall: 'rmdir',
+npm WARN cleanup       path: 'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\esbuild'
+npm WARN cleanup     }
+npm WARN cleanup   ],
+npm WARN cleanup   [
+npm WARN cleanup     'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\esbuild',
+npm WARN cleanup     [Error: EBUSY: resource busy or locked, rmdir 'C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\esbuild'] {
+npm WARN cleanup       errno: -4082,
+npm WARN cleanup       code: 'EBUSY',
+npm WARN cleanup       syscall: 'rmdir',
+npm WARN cleanup       path: 'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\esbuild'
+npm WARN cleanup     }
+npm WARN cleanup   ],
+npm WARN cleanup   [
+npm WARN cleanup     'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\astro',
+npm WARN cleanup     [Error: EPERM: operation not permitted, rmdir 'C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\astro\dist\actions'] {
+npm WARN cleanup       errno: -4048,
+npm WARN cleanup       code: 'EPERM',
+npm WARN cleanup       syscall: 'rmdir',
+npm WARN cleanup       path: 'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\astro\\dist\\actions'
+npm WARN cleanup     }
+npm WARN cleanup   ],
+npm WARN cleanup   [
+npm WARN cleanup     'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\esbuild\\node_modules\\@esbuild\\win32-x64',
+npm WARN cleanup     [Error: ENOTEMPTY: directory not empty, rmdir 'C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\esbuild\node_modules\@esbuild\win32-x64'] {
+npm WARN cleanup       errno: -4051,
+npm WARN cleanup       code: 'ENOTEMPTY',
+npm WARN cleanup       syscall: 'rmdir',
+npm WARN cleanup       path: 'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\esbuild\\node_modules\\@esbuild\\win32-x64'
+npm WARN cleanup     }
+npm WARN cleanup   ]
+npm WARN cleanup ]
+npm ERR! code 1
+npm ERR! path C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\vite\node_modules\esbuild
+npm ERR! command failed
+npm ERR! command C:\Windows\system32\cmd.exe /d /s /c node install.js
+npm ERR! node:internal/errors:932
+npm ERR!   const err = new Error(message);
+npm ERR!               ^
+npm ERR! 
+npm ERR! Error: Command failed: C:\Program Files\nodejs\node.exe C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\vite\node_modules\esbuild\bin\esbuild --version
+npm ERR! node:child_process:929
+npm ERR!     throw err;
+npm ERR!     ^
+npm ERR! 
+npm ERR! <ref *1> Error: spawnSync C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\@esbuild\win32-x64\esbuild.exe UNKNOWN
+npm ERR!     at Object.spawnSync (node:internal/child_process:1124:20)
+npm ERR!     at spawnSync (node:child_process:876:24)
+npm ERR!     at Object.execFileSync (node:child_process:919:15)
+npm ERR!     at Object.<anonymous> (C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\vite\node_modules\esbuild\bin\esbuild:219:28)
+npm ERR!     at Module._compile (node:internal/modules/cjs/loader:1376:14)
+npm ERR!     at Module._extensions..js (node:internal/modules/cjs/loader:1435:10)
+npm ERR!     at Module.load (node:internal/modules/cjs/loader:1207:32)
+npm ERR!     at Module._load (node:internal/modules/cjs/loader:1023:12)
+npm ERR!     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:135:12)
+npm ERR!     at node:internal/main/run_main_module:28:49 {
+npm ERR!   errno: -4094,
+npm ERR!   code: 'UNKNOWN',
+npm ERR!   syscall: 'spawnSync C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\@esbuild\\win32-x64\\esbuild.exe',
+npm ERR!   path: 'C:\\Users\\HP\\.gemini\\antigravity\\scratch\\prom-voting-app\\node_modules\\@esbuild\\win32-x64\\esbuild.exe',
+npm ERR!   spawnargs: [ '--version' ],
+npm ERR!   error: [Circular *1],
+npm ERR!   status: null,
+npm ERR!   signal: null,
+npm ERR!   output: null,
+npm ERR!   pid: 0,
+npm ERR!   stdout: null,
+npm ERR!   stderr: null
+npm ERR! }
+npm ERR! 
+npm ERR! Node.js v20.11.1
+npm ERR! 
+npm ERR!     at checkExecSyncError (node:child_process:890:11)
+npm ERR!     at Object.execFileSync (node:child_process:926:15)
+npm ERR!     at validateBinaryVersion (C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\vite\node_modules\esbuild\install.js:99:28)
+npm ERR!     at C:\Users\HP\.gemini\antigravity\scratch\prom-voting-app\node_modules\vite\node_modules\esbuild\install.js:281:5 {
+npm ERR!   status: 1,
+npm ERR!   signal: null,
+npm ERR!   output: [
+npm ERR!     null,
+npm ERR!     Buffer(0) [Uint8Array] [],
+npm ERR!     Buffer(1371) [Uint8Array] [
+npm ERR!       110, 111, 100, 101,  58,  99, 104, 105, 108, 100,  95, 112,
+npm ERR!       114, 111,  99, 101, 115, 115,  58,  57,  50,  57,  13,  10,
+npm ERR!        32,  32,  32,  32, 116, 104, 114, 111, 119,  32, 101, 114,
+npm ERR!       114,  59,  13,  10,  32,  32,  32,  32,  94,  13,  10,  13,
+npm ERR!        10,  60, 114, 101, 102,  32,  42,  49,  62,  32,  69, 114,
+npm ERR!       114, 111, 114,  58,  32, 115, 112,  97, 119, 110,  83, 121,
+npm ERR!       110,  99,  32,  67,  58,  92,  85, 115, 101, 114, 115,  92,
+npm ERR!        72,  80,  92,  46, 103, 101, 109, 105, 110, 105,  92,  97,
+npm ERR!       110, 116, 105, 103,
+npm ERR!       ... 1271 more items
+npm ERR!     ]
+npm ERR!   ],
+npm ERR!   pid: 12784,
+npm ERR!   stdout: Buffer(0) [Uint8Array] [],
+npm ERR!   stderr: Buffer(1371) [Uint8Array] [
+npm ERR!     110, 111, 100, 101,  58,  99, 104, 105, 108, 100,  95, 112,
+npm ERR!     114, 111,  99, 101, 115, 115,  58,  57,  50,  57,  13,  10,
+npm ERR!      32,  32,  32,  32, 116, 104, 114, 111, 119,  32, 101, 114,
+npm ERR!     114,  59,  13,  10,  32,  32,  32,  32,  94,  13,  10,  13,
+npm ERR!      10,  60, 114, 101, 102,  32,  42,  49,  62,  32,  69, 114,
+npm ERR!     114, 111, 114,  58,  32, 115, 112,  97, 119, 110,  83, 121,
+npm ERR!     110,  99,  32,  67,  58,  92,  85, 115, 101, 114, 115,  92,
+npm ERR!      72,  80,  92,  46, 103, 101, 109, 105, 110, 105,  92,  97,
+npm ERR!     110, 116, 105, 103,
+npm ERR!     ... 1271 more items
+npm ERR!   ]
+npm ERR! }
+npm ERR! 
+npm ERR! Node.js v20.11.1
+
+npm ERR! A complete log of this run can be found in: C:\Users\HP\AppData\Local\npm-cache\_logs\2026-08-08T20_46_25_546Z-debug-0.log

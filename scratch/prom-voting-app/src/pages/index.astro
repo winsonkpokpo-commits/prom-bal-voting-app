@@ -1,0 +1,209 @@
+---
+import Layout from '../components/Layout.astro';
+import GlassCard from '../components/GlassCard.astro';
+import { supabase } from '../lib/supabase';
+
+// SSR: Fetch config, students and categories directly server-side
+let votingClosed = false;
+let students = [];
+let categories = [];
+
+try {
+  const [{ data: configData }, { data: studentsData }, { data: categoriesData }] = await Promise.all([
+    supabase.from('config').select('voting_closed').eq('id', 1).single(),
+    supabase.from('students').select('*').order('name'),
+    supabase.from('categories').select('*').order('position')
+  ]);
+
+  votingClosed = configData?.voting_closed || false;
+  students = studentsData || [];
+  categories = categoriesData || [];
+} catch (error) {
+  console.error("SSR Erreur:", error);
+}
+
+const studentsJson = JSON.stringify(students);
+const categoriesJson = JSON.stringify(categories);
+---
+
+<Layout title="Voter">
+	<h1>Bal Masqué - Élections</h1>
+	
+	<GlassCard>
+		{votingClosed ? (
+			<div class="closed-message text-center">
+				<h2>Les urnes sont scellées</h2>
+				<p>Le vote pour le Bal de Promo est actuellement fermé. Les résultats seront bientôt dévoilés.</p>
+			</div>
+		) : (
+			<form id="voting-form">
+				<div id="error-box" class="error-msg" style="display: none;"></div>
+				<div id="success-box" class="success-msg" style="display: none;"></div>
+				
+				<div class="form-section">
+					<h3>Qui êtes-vous ?</h3>
+					<p>Sélectionnez votre nom pour voter. Votre choix restera anonyme, mais cela nous permet d'éviter les votes multiples.</p>
+					<select id="voter-select" required>
+						<option value="" disabled selected>-- Sélectionnez votre nom --</option>
+						{students.map((s) => (
+							<option value={s.id}>{s.name}</option>
+						))}
+					</select>
+				</div>
+				
+				<hr class="divider" />
+				
+				<div class="form-section">
+					<h3>Couronne Royale</h3>
+					
+					<label for="king-select">Roi du Bal</label>
+					<select id="king-select">
+						<option value="" selected>-- Vote Blanc --</option>
+						{students.map((s) => (
+							<option value={s.name}>{s.name}</option>
+						))}
+					</select>
+					
+					<label for="queen-select">Reine du Bal</label>
+					<select id="queen-select">
+						<option value="" selected>-- Vote Blanc --</option>
+						{students.map((s) => (
+							<option value={s.name}>{s.name}</option>
+						))}
+					</select>
+				</div>
+				
+				{categories.length > 0 && <hr class="divider" />}
+				
+				<div class="form-section">
+					{categories.length > 0 && <h3>Catégories Spéciales</h3>}
+					<div id="categories-container">
+						{categories.map((c) => (
+							<div class="category-field">
+								<label for={`cat-${c.id}`}>{c.name}</label>
+								<select id={`cat-${c.id}`} data-cat-id={c.id}>
+									<option value="" selected>-- Vote Blanc --</option>
+									{students.map((s) => (
+										<option value={s.name}>{s.name}</option>
+									))}
+								</select>
+							</div>
+						))}
+					</div>
+				</div>
+				
+				<div class="text-center" style="margin-top: 2rem;">
+					<button type="submit" id="submit-btn">Déposer mon vote</button>
+				</div>
+			</form>
+		)}
+	</GlassCard>
+</Layout>
+
+<script is:inline define:vars={{ studentsJson, categoriesJson }}>
+	document.addEventListener('DOMContentLoaded', () => {
+		const form = document.getElementById('voting-form');
+		if (!form) return;
+		
+		const submitBtn = document.getElementById('submit-btn');
+		const errorBox = document.getElementById('error-box');
+		const successBox = document.getElementById('success-box');
+		
+		const students = JSON.parse(studentsJson);
+		const categories = JSON.parse(categoriesJson);
+		
+		form.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			
+			// Réinitialisation des messages
+			errorBox.style.display = 'none';
+			successBox.style.display = 'none';
+			
+			const voterId = document.getElementById('voter-select').value;
+			if (!voterId) {
+				errorBox.textContent = "Veuillez sélectionner votre nom.";
+				errorBox.style.display = 'block';
+				return;
+			}
+			
+			const voterInfo = students.find(s => s.id === voterId);
+			const king = document.getElementById('king-select').value;
+			const queen = document.getElementById('queen-select').value;
+			
+			const catVotes = {};
+			categories.forEach(c => {
+				const val = document.getElementById(`cat-${c.id}`).value;
+				if (val) catVotes[c.id] = val;
+			});
+			
+			const payload = {
+				voter_slug: voterId,
+				voter_name: voterInfo.name,
+				king: king,
+				queen: queen,
+				categories: catVotes
+			};
+			
+			submitBtn.disabled = true;
+			submitBtn.innerHTML = '<span class="loader"></span> Envoi...';
+			
+			try {
+				const res = await fetch('/api/vote', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				
+				const data = await res.json();
+				
+				if (!res.ok) {
+					throw new Error(data.error || "Erreur lors du vote");
+				}
+				
+				successBox.textContent = "Votre vote a été enregistré avec succès ! Vous pouvez modifier votre vote tant que les urnes sont ouvertes.";
+				successBox.style.display = 'block';
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			} catch (err) {
+				errorBox.textContent = err.message || "Une erreur réseau est survenue.";
+				errorBox.style.display = 'block';
+			} finally {
+				submitBtn.disabled = false;
+				submitBtn.textContent = 'Déposer mon vote';
+			}
+		});
+	});
+</script>
+
+<style>
+	.text-center { text-align: center; }
+	.closed-message h2 { font-size: 2rem; margin-bottom: 1rem; }
+	
+	.form-section {
+		margin-bottom: 1.5rem;
+	}
+	
+	.form-section h3 {
+		font-size: 1.5rem;
+		margin-bottom: 1rem;
+		border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+		padding-bottom: 0.5rem;
+	}
+	
+	label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: var(--color-gold-light);
+	}
+	
+	.divider {
+		border: 0;
+		height: 1px;
+		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+		margin: 2rem 0;
+	}
+	
+	.category-field {
+		margin-bottom: 1rem;
+	}
+</style>
