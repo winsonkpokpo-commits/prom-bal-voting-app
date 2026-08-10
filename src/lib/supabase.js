@@ -1,13 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.SUPABASE_URL;
+const supabaseServiceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Fournit le transport WebSocket uniquement côté serveur (Node.js)
-const realtimeOptions = import.meta.env.SSR
-  ? { transport: (await import('ws')).default }
-  : {};
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: realtimeOptions,
+export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+  realtime: {
+    transport: ws,
+  },
 });
