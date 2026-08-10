@@ -99,7 +99,10 @@ const categoriesJson = JSON.stringify(categories);
 		)}
 	</GlassCard>
 </Layout>
-
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script is:inline>
+	let sessionToken = sessionStorage.getItem('admin_token') || null;
+	...
 <script is:inline define:vars={{ studentsJson, categoriesJson }}>
 	document.addEventListener('DOMContentLoaded', () => {
 		const form = document.getElementById('voting-form');
