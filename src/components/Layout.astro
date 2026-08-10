@@ -28,6 +28,10 @@ const { title } = Astro.props;
 		<main>
 			<slot />
 		</main>
+
+		<footer class="site-footer" role="contentinfo">
+			<div class="site-credit">D'après l'idée originale de GNASSOUNOU Trésor, Réalisé par Winson KPOKPO</div>
+		</footer>
 	</body>
 </html>
 
@@ -89,6 +93,25 @@ const { title } = Astro.props;
 		max-width: 800px;
 		padding: 2rem 1.5rem;
 		z-index: 1;
+	}
+
+	footer.site-footer {
+		width: 100%;
+		max-width: 800px;
+		padding: 0.75rem 1.5rem;
+		margin-top: auto;
+		text-align: center;
+		color: var(--color-text-muted);
+		font-size: 0.85rem;
+		opacity: 0.95;
+		font-family: var(--font-body);
+	}
+
+	.site-credit {
+		/* Texte sobre et lisible */
+		color: var(--color-text-muted);
+		font-size: 0.85rem;
+		line-height: 1;
 	}
 
 	h1, h2, h3, h4, h5, h6 {
@@ -202,5 +225,5 @@ const { title } = Astro.props;
 	
 	@keyframes spin {
 		to { transform: rotate(360deg); }
-	}
+		}
 </style>
