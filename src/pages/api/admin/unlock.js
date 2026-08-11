@@ -1,24 +1,37 @@
-import { buildAdminSessionCookie, createAdminSession } from '../../../lib/admin-auth';
+import { createAdminSession, buildAdminSessionCookie } from '../../../lib/admin-auth';
 
-export const POST = async ({ request }) => {
+export async function POST({ request }) {
   try {
-    const { code } = await request.json();
-    const adminKey = import.meta.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET_KEY;
+    const body = await request.json();
+    const { code } = body;
 
-    if (code === adminKey) {
+    // Vérification du mot de passe avec la variable d'environnement
+    if (code === import.meta.env.ADMIN_SECRET_KEY) {
+      // 1. On crée le jeton chiffré
       const token = createAdminSession();
-      return new Response(JSON.stringify({ success: true, loggedIn: true }), {
+      // 2. On fabrique l'en-tête du cookie
+      const cookieHeader = buildAdminSessionCookie(token);
+
+      // 3. On répond "Succès" en ATTACHANT le cookie au navigateur
+      return new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Set-Cookie': buildAdminSessionCookie(token)
+          'Set-Cookie': cookieHeader
         }
       });
     }
 
-    return new Response(JSON.stringify({ error: 'Code incorrect' }), { status: 401 });
-  } catch (err) {
-    console.error('Exception unlock:', err);
-    return new Response(JSON.stringify({ error: 'Erreur serveur' }), { status: 500 });
+    // Si le code est faux
+    return new Response(JSON.stringify({ success: false, error: 'Code incorrect' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    return new Response(JSON.stringify({ success: false, error: 'Erreur serveur' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-};
+}
