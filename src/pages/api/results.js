@@ -1,87 +1,78 @@
-import { requireAdmin } from '../../lib/admin-auth';
-import { supabase } from '../../lib/supabase';
+---
+import Layout from '../../components/Layout.astro';
+import GlassCard from '../../components/GlassCard.astro';
+import { requireAdminSession } from '../../lib/admin-auth';
 
-export const GET = async ({ request }) => {
-  try {
-    const auth = requireAdmin(request);
-    if (!auth.ok) return auth.response;
+// Redirection directe côté serveur si l'utilisateur n'est pas connecté
+if (!requireAdminSession(Astro)) {
+  return Astro.redirect('/admin');
+}
+---
 
-    const { data: ballots, error } = await supabase.from('ballots').select('*');
-    if (error) throw error;
+<Layout title="Résultats du Bal - CPEG Ste Bakhita">
+  <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Résultats du Bal 2026</h1>
+    <a href="/admin" class="btn-secondary">Retour Admin</a>
+  </div>
 
-    const { data: categoriesData, error: catError } = await supabase.from('categories').select('*').order('position');
-    if (catError) throw catError;
+  <div id="results-container">
+    <div class="text-center" style="margin-bottom: 2rem;">
+      <h2 style="font-size: 2rem; color: var(--gold, #D4AF37);">Tableau de Bord Officiel</h2>
+      <p id="total-votes">Chargement des données...</p>
+      <button id="refresh-btn" class="btn-refresh">Rafraîchir les résultats</button>
+    </div>
 
-    // Les votes stockent désormais des IDs d'élèves (et non plus des noms) :
-    // on récupère la liste complète pour pouvoir afficher nom + photo dans les résultats.
-    const { data: studentsData, error: studError } = await supabase.from('students').select('id, name, photo_url');
-    if (studError) throw studError;
+    <GlassCard>
+      <h3>Votes enregistrés</h3>
+      <div id="votes-list">
+        <p>Les données sont prêtes à être alimentées depuis la base Supabase.</p>
+      </div>
+    </GlassCard>
+  </div>
+</Layout>
 
-    const studentsById = new Map((studentsData || []).map((s) => [s.id, s]));
-    const resolveStudent = (id) => studentsById.get(id) || { name: 'Élève supprimé', photo_url: null };
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', () => {
+    const totalVotesEl = document.getElementById('total-votes');
 
-    const results = {
-      king: {},
-      queen: {},
-      categories: {}
-    };
-
-    categoriesData.forEach(c => {
-      results.categories[c.id] = { name: c.name, votes: {} };
-    });
-
-    let totalVotes = ballots.length;
-
-    ballots.forEach(ballot => {
-      if (ballot.king) results.king[ballot.king] = (results.king[ballot.king] || 0) + 1;
-      if (ballot.queen) results.queen[ballot.queen] = (results.queen[ballot.queen] || 0) + 1;
-
-      if (ballot.votes) {
-        Object.keys(ballot.votes).forEach(catId => {
-          const candidateId = ballot.votes[catId];
-          if (results.categories[catId] && candidateId) {
-            results.categories[catId].votes[candidateId] = (results.categories[catId].votes[candidateId] || 0) + 1;
-          }
-        });
+    const fetchResults = async () => {
+      try {
+        const res = await fetch('/api/results');
+        if (res.ok) {
+          const data = await res.json();
+          totalVotesEl.textContent = `Total des bulletins : ${data.total || 0}`;
+        } else if (res.status === 401) {
+          window.location.href = '/admin';
+        }
+      } catch (err) {
+        totalVotesEl.textContent = "Erreur lors du chargement des résultats.";
       }
-    });
-
-    // Formatage pour un affichage facile
-    const formatPodium = (tally) => {
-      return Object.entries(tally)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([id, count]) => {
-          const student = resolveStudent(id);
-          return { name: student.name, photo_url: student.photo_url, count };
-        });
     };
 
-    const formatCategory = (cat) => {
-       const sorted = Object.entries(cat.votes).sort((a, b) => b[1] - a[1]);
-       const total = sorted.reduce((sum, [, count]) => sum + count, 0);
-       return {
-         name: cat.name,
-         total,
-         candidates: sorted.map(([id, count]) => {
-           const student = resolveStudent(id);
-           return { name: student.name, photo_url: student.photo_url, count };
-         })
-       };
-    };
+    document.getElementById('refresh-btn')?.addEventListener('click', fetchResults);
+    fetchResults();
+  });
+</script>
 
-    return new Response(JSON.stringify({
-      total: totalVotes,
-      king: formatPodium(results.king),
-      queen: formatPodium(results.queen),
-      categories: Object.values(results.categories).map(formatCategory)
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (err) {
-    console.error("Exception results:", err);
-    return new Response(JSON.stringify({ error: "Erreur serveur lors du dépouillement" }), { status: 500 });
+<style>
+  .text-center { text-align: center; }
+  h1 { color: #fff; font-size: 1.8rem; }
+  .btn-secondary {
+    color: var(--gold, #D4AF37);
+    border: 1px solid var(--gold, #D4AF37);
+    padding: 6px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.85rem;
   }
-};
+  .btn-refresh {
+    background: var(--gold, #D4AF37);
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+</style>
