@@ -1,0 +1,109 @@
+---
+import Layout from '../components/Layout.astro';
+import GlassCard from '../components/GlassCard.astro';
+---
+
+<Layout title="Résultats Officiels - Bal Masqué 2026">
+  <div class="results-page">
+    <div class="hero-results">
+      <div class="crown-icon">👑</div>
+      <h1>Dépouillement Officiel</h1>
+      <p class="subtitle">Découvrez le Roi, la Reine et les lauréats du Bal Masqué 2026</p>
+    </div>
+
+    <div class="podium-grid">
+      <GlassCard title="👑 Roi du Bal 2026">
+        <div id="king-podium" class="podium-cards">
+          <p class="loading">Chargement du podium...</p>
+        </div>
+      </GlassCard>
+
+      <GlassCard title="👑 Reine du Bal 2026">
+        <div id="queen-podium" class="podium-cards">
+          <p class="loading">Chargement du podium...</p>
+        </div>
+      </GlassCard>
+    </div>
+
+    <div id="other-categories" style="margin-top: 2rem;"></div>
+
+    <div class="footer-link">
+      <a href="/">← Retour à l'accueil</a>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const res = await fetch('/api/results-public');
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      const renderPodium = (candidates, containerId) => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!candidates || candidates.length === 0) {
+          container.innerHTML = '<p style="text-align:center; color:#a1a1aa;">Aucun vote pour le moment.</p>';
+          return;
+        }
+
+        const medals = ['🥇', '🥈', '🥉'];
+        const ranks = ['first', 'second', 'third'];
+
+        candidates.slice(0, 3).forEach((c, idx) => {
+          const card = document.createElement('div');
+          card.className = `podium-card ${ranks[idx] || ''}`;
+          
+          const photoUrl = c.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=D4AF37&color=fff`;
+
+          card.innerHTML = `
+            <div class="medal">${medals[idx] || (idx + 1)}</div>
+            <img src="${photoUrl}" alt="${c.name}" class="candidate-photo" />
+            <div class="candidate-name">${c.name}</div>
+            <div class="vote-count">${c.count || 0} vote(s)</div>
+          `;
+          container.appendChild(card);
+        });
+      };
+
+      renderPodium(data.king, 'king-podium');
+      renderPodium(data.queen, 'queen-podium');
+
+    } catch (err) {
+      console.error(err);
+    }
+  });
+</script>
+
+<style>
+  .results-page { max-width: 900px; margin: 2rem auto; padding: 0 1rem; text-align: center; }
+  .crown-icon { font-size: 3.5rem; }
+  h1 { font-size: 2.2rem; color: #fff; margin-bottom: 0.5rem; }
+  .subtitle { color: var(--gold, #D4AF37); margin-bottom: 2.5rem; font-size: 1.1rem; }
+
+  .podium-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+  @media(min-width: 768px) { .podium-grid { grid-template-columns: 1fr 1fr; } }
+
+  .podium-cards { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+  
+  .podium-card {
+    display: flex; align-items: center; padding: 0.8rem 1rem;
+    background: rgba(255, 255, 255, 0.05); border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.2s;
+  }
+  
+  .podium-card.first { border-color: #ffd700; background: rgba(255, 215, 0, 0.1); transform: scale(1.03); }
+  .podium-card.second { border-color: #c0c0c0; }
+  .podium-card.third { border-color: #cd7f32; }
+
+  .medal { font-size: 1.8rem; margin-right: 1rem; }
+  .candidate-photo { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold, #D4AF37); margin-right: 1rem; }
+  .candidate-name { flex: 1; text-align: left; font-weight: 600; color: #fff; font-size: 1.05rem; }
+  .vote-count { background: rgba(212, 175, 55, 0.2); color: var(--gold, #D4AF37); padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
+  .footer-link { margin-top: 3rem; }
+  .footer-link a { color: #a1a1aa; text-decoration: none; }
+</style>
