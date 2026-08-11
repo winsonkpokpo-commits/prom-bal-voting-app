@@ -12,7 +12,14 @@ export const GET = async ({ request }) => {
     const { data: categoriesData, error: catError } = await supabase.from('categories').select('*').order('position');
     if (catError) throw catError;
 
-    // Dépouillement
+    // Les votes stockent désormais des IDs d'élèves (et non plus des noms) :
+    // on récupère la liste complète pour pouvoir afficher nom + photo dans les résultats.
+    const { data: studentsData, error: studError } = await supabase.from('students').select('id, name, photo_url');
+    if (studError) throw studError;
+
+    const studentsById = new Map((studentsData || []).map((s) => [s.id, s]));
+    const resolveStudent = (id) => studentsById.get(id) || { name: 'Élève supprimé', photo_url: null };
+
     const results = {
       king: {},
       queen: {},
@@ -31,9 +38,9 @@ export const GET = async ({ request }) => {
 
       if (ballot.votes) {
         Object.keys(ballot.votes).forEach(catId => {
-          const candidate = ballot.votes[catId];
-          if (results.categories[catId] && candidate) {
-            results.categories[catId].votes[candidate] = (results.categories[catId].votes[candidate] || 0) + 1;
+          const candidateId = ballot.votes[catId];
+          if (results.categories[catId] && candidateId) {
+            results.categories[catId].votes[candidateId] = (results.categories[catId].votes[candidateId] || 0) + 1;
           }
         });
       }
@@ -44,15 +51,22 @@ export const GET = async ({ request }) => {
       return Object.entries(tally)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([name, count]) => ({ name, count }));
+        .map(([id, count]) => {
+          const student = resolveStudent(id);
+          return { name: student.name, photo_url: student.photo_url, count };
+        });
     };
 
     const formatCategory = (cat) => {
        const sorted = Object.entries(cat.votes).sort((a, b) => b[1] - a[1]);
+       const total = sorted.reduce((sum, [, count]) => sum + count, 0);
        return {
          name: cat.name,
-         total: sorted.reduce((sum, [, count]) => sum + count, 0),
-         candidates: sorted.map(([name, count]) => ({ name, count }))
+         total,
+         candidates: sorted.map(([id, count]) => {
+           const student = resolveStudent(id);
+           return { name: student.name, photo_url: student.photo_url, count };
+         })
        };
     };
 
