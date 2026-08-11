@@ -42,8 +42,8 @@ try {
 		<GlassCard>
 			<h3>État des votes</h3>
 			<p>Statut actuel : <strong>{votingClosed ? "Fermé 🛑" : "Ouvert ✅"}</strong></p>
-			
-			<div style="display: flex; gap: 1rem; margin-top: 1rem;">
+
+			<div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
 				{votingClosed ? (
 					<button id="btn-reopen" class="btn" style="background: linear-gradient(135deg, #51cf66, #2b8a3e);">Ouvrir les votes</button>
 				) : (
@@ -52,21 +52,44 @@ try {
 				<button id="btn-reset" class="btn" style="background: transparent; color: #ff6b6b; border-color: #ff6b6b;">Réinitialiser tous les votes</button>
 			</div>
 		</GlassCard>
-		
+
 		<GlassCard>
 			<h3>Gestion des Élèves</h3>
-			<form id="add-student-form" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-				<input type="text" id="new-student-name" placeholder="Nom de l'élève" required style="margin: 0;" />
+			<form id="add-student-form" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+				<input type="text" id="new-student-name" placeholder="Nom de l'élève" required style="margin: 0; flex: 1; min-width: 180px;" />
 				<button type="submit" class="btn">Ajouter</button>
 			</form>
+
 			<div class="list-container">
 				{students.map(s => (
 					<div class="list-item">
-						<span>{s.name}</span>
-						<button class="btn-delete" data-id={s.id} data-type="student">🗑️</button>
+						<div class="list-item-info">
+							{s.photo_url
+								? <img src={s.photo_url} alt={s.name} class="list-avatar" />
+								: <div class="list-avatar-fallback">{s.name.slice(0, 2).toUpperCase()}</div>
+							}
+							<span>{s.name}</span>
+						</div>
+						<div class="list-item-actions">
+							<label class="btn-photo" title="Changer la photo">
+								📷
+								<input type="file" accept="image/*" class="student-photo-input" data-id={s.id} />
+							</label>
+							<button class="btn-delete" data-id={s.id} data-type="student">🗑️</button>
+						</div>
 					</div>
 				))}
 				{students.length === 0 && <p>Aucun élève enregistré.</p>}
+			</div>
+
+			<div class="import-section">
+				<label for="import-file">Importer une liste (CSV ou Excel)</label>
+				<input type="file" id="import-file" accept=".csv,.xlsx,.xls" />
+				<p class="hint">Une colonne avec un nom par ligne. Un éventuel en-tête ("Nom", "Élève"...) est ignoré automatiquement.</p>
+				<div id="import-preview" style="display: none;">
+					<p id="import-preview-text"></p>
+					<button id="import-confirm-btn" class="btn" type="button">Confirmer l'import</button>
+				</div>
 			</div>
 		</GlassCard>
 
@@ -89,7 +112,11 @@ try {
 	</div>
 </Layout>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script is:inline>
+	// Le vrai secret de session est le cookie HttpOnly posé par /api/admin/unlock ;
+	// cette valeur en sessionStorage ne sert qu'à savoir si on doit ré-afficher le panneau
+	// admin au chargement de la page, sans forcer une reconnexion à chaque fois.
 	let sessionToken = sessionStorage.getItem('admin_token') || null;
 
 	document.addEventListener('DOMContentLoaded', () => {
@@ -103,24 +130,23 @@ try {
 			adminPanel.style.display = 'block';
 		};
 
-		if (sessionToken === "admin_token_ok") {
+		if (sessionToken) {
 			showAdmin();
 		}
 
 		loginForm?.addEventListener('submit', async (e) => {
 			e.preventDefault();
 			const code = document.getElementById('admin-code').value;
-			
+
 			try {
 				const res = await fetch('/api/admin/unlock', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ code })
 				});
-				
+
 				if (res.ok) {
-					const data = await res.json();
-					sessionToken = data.token;
+					sessionToken = 'ok';
 					sessionStorage.setItem('admin_token', sessionToken);
 					showAdmin();
 				} else {
@@ -133,7 +159,8 @@ try {
 			}
 		});
 
-		// Helper pour les appels API admin
+		// Helper pour les appels API admin en JSON (le cookie de session est envoyé
+		// automatiquement par le navigateur ; le token ici n'est qu'un filet de sécurité)
 		const adminApiCall = async (endpoint, payload) => {
 			if (!sessionToken) return alert("Non connecté");
 			try {
@@ -145,7 +172,8 @@ try {
 				if (res.ok) {
 					window.location.reload();
 				} else {
-					alert("Erreur lors de l'opération.");
+					const data = await res.json().catch(() => ({}));
+					alert(data.error || "Erreur lors de l'opération.");
 				}
 			} catch (err) {
 				alert("Erreur réseau.");
@@ -191,11 +219,92 @@ try {
 				}
 			});
 		});
+
+		// --- Photo par élève ---
+		document.querySelectorAll('.student-photo-input').forEach(input => {
+			input.addEventListener('change', async (e) => {
+				const file = e.target.files[0];
+				const studentId = e.target.getAttribute('data-id');
+				if (!file || !studentId || !sessionToken) return;
+
+				const formData = new FormData();
+				formData.append('token', sessionToken);
+				formData.append('student_id', studentId);
+				formData.append('photo', file);
+
+				try {
+					const res = await fetch('/api/admin/students/photo', { method: 'POST', body: formData });
+					if (res.ok) {
+						window.location.reload();
+					} else {
+						const data = await res.json().catch(() => ({}));
+						alert(data.error || "Erreur lors de l'envoi de la photo");
+					}
+				} catch (err) {
+					alert("Erreur réseau.");
+				}
+			});
+		});
+
+		// --- Import CSV/Excel ---
+		const importFile = document.getElementById('import-file');
+		const importPreview = document.getElementById('import-preview');
+		const importPreviewText = document.getElementById('import-preview-text');
+		const importConfirmBtn = document.getElementById('import-confirm-btn');
+		let parsedStudents = [];
+
+		importFile?.addEventListener('change', async (e) => {
+			const file = e.target.files[0];
+			if (!file) return;
+			const data = await file.arrayBuffer();
+			const workbook = XLSX.read(data, { type: 'array' });
+			const sheet = workbook.Sheets[workbook.SheetNames[0]];
+			const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+			parsedStudents = rows
+				.map(row => (row[0] ? String(row[0]).trim() : ''))
+				.filter(Boolean)
+				.filter(name => !/^(nom|name|[ée]l[èe]ve|student)s?$/i.test(name))
+				.map(name => ({ name }));
+
+			importPreviewText.textContent = `${parsedStudents.length} élève(s) détecté(s). Cliquez pour confirmer l'import.`;
+			importPreview.style.display = 'block';
+		});
+
+		importConfirmBtn?.addEventListener('click', async () => {
+			if (!sessionToken || parsedStudents.length === 0) return;
+			importConfirmBtn.disabled = true;
+			importConfirmBtn.textContent = 'Import en cours...';
+			try {
+				const res = await fetch('/api/admin/students/import', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ token: sessionToken, students: parsedStudents })
+				});
+				if (res.ok) {
+					window.location.reload();
+				} else {
+					const data = await res.json().catch(() => ({}));
+					alert(data.error || "Erreur lors de l'import");
+					importConfirmBtn.disabled = false;
+					importConfirmBtn.textContent = "Confirmer l'import";
+				}
+			} catch (err) {
+				alert('Erreur réseau.');
+				importConfirmBtn.disabled = false;
+				importConfirmBtn.textContent = "Confirmer l'import";
+			}
+		});
 	});
 </script>
 
 <style>
 	.text-center { text-align: center; }
+	.hint {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		margin: 0.4rem 0 0.75rem;
+	}
 	.list-container {
 		display: flex;
 		flex-direction: column;
@@ -204,28 +313,73 @@ try {
 		overflow-y: auto;
 		padding-right: 0.5rem;
 	}
-	
-	/* Personnalisation de la scrollbar */
-	.list-container::-webkit-scrollbar {
-		width: 6px;
-	}
-	.list-container::-webkit-scrollbar-track {
-		background: rgba(255, 255, 255, 0.05); 
-	}
-	.list-container::-webkit-scrollbar-thumb {
-		background: rgba(212, 175, 55, 0.5); 
-		border-radius: 10px;
-	}
-	
+
+	.list-container::-webkit-scrollbar { width: 6px; }
+	.list-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+	.list-container::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.5); border-radius: 10px; }
+
 	.list-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 0.75rem 1rem;
+		padding: 0.6rem 1rem;
 		background: rgba(255, 255, 255, 0.05);
 		border-radius: 4px;
 		border: 1px solid rgba(212, 175, 55, 0.1);
 	}
+
+	.list-item-info {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		min-width: 0;
+	}
+
+	.list-item-info span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.list-item-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.list-avatar {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 1px solid rgba(212, 175, 55, 0.3);
+		flex-shrink: 0;
+	}
+
+	.list-avatar-fallback {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(212, 175, 55, 0.15);
+		color: var(--color-gold);
+		font-weight: 700;
+		font-size: 0.7rem;
+		flex-shrink: 0;
+	}
+
+	.btn-photo {
+		cursor: pointer;
+		font-size: 1.1rem;
+		opacity: 0.75;
+		transition: opacity 0.2s, transform 0.2s;
+	}
+	.btn-photo:hover { opacity: 1; transform: scale(1.1); }
+	.btn-photo input { display: none; }
+
 	.btn-delete {
 		background: transparent;
 		border: none;
@@ -242,4 +396,19 @@ try {
 		transform: scale(1.1);
 		box-shadow: none;
 	}
+
+	.import-section {
+		margin-top: 1.5rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid rgba(212, 175, 55, 0.15);
+	}
+
+	#import-preview {
+		margin-top: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: rgba(212, 175, 55, 0.08);
+		border: 1px solid rgba(212, 175, 55, 0.2);
+		border-radius: 6px;
+	}
+	#import-preview p { margin: 0 0 0.5rem; color: var(--color-text-main); }
 </style>
