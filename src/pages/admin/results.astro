@@ -1,275 +1,78 @@
 ---
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
+import { requireAdminSession } from '../../lib/admin-auth';
 
-// Pour cette page, on ne fait pas le fetch SSR direct si on veut laisser le client rafraîchir.
-// Mais on peut faire un fetch initial via SSR pour un premier rendu rapide (SEO/UX)
-// Toutefois, comme on a une route /api/results, on l'appellera côté client pour avoir de l'interactivité.
+// Redirection directe côté serveur si l'utilisateur n'est pas connecté
+if (!requireAdminSession(Astro)) {
+  return Astro.redirect('/admin');
+}
 ---
 
-<Layout title="Résultats du Bal">
-	<div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-		<h1 style="margin: 0;">Résultats</h1>
-		<a href="/admin" class="btn" style="background: transparent; border-color: var(--color-gold);">Retour Config</a>
-	</div>
+<Layout title="Résultats du Bal - CPEG Ste Bakhita">
+  <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h1>Résultats du Bal 2026</h1>
+    <a href="/admin" class="btn-secondary">Retour Admin</a>
+  </div>
 
-	<GlassCard id="auth-wall">
-		<h3 class="text-center">Accès Restreint</h3>
-		<p class="text-center">Veuillez déverrouiller l'accès depuis la page de configuration.</p>
-		<div class="text-center">
-			<a href="/admin" class="btn">Aller à l'administration</a>
-		</div>
-	</GlassCard>
+  <div id="results-container">
+    <div class="text-center" style="margin-bottom: 2rem;">
+      <h2 style="font-size: 2rem; color: var(--gold, #D4AF37);">Tableau de Bord Officiel</h2>
+      <p id="total-votes">Chargement des données...</p>
+      <button id="refresh-btn" class="btn-refresh">Rafraîchir les résultats</button>
+    </div>
 
-	<div id="results-container" style="display: none;">
-		<div class="text-center" style="margin-bottom: 2rem;">
-			<h2 style="font-size: 2.5rem; text-shadow: 0 0 15px var(--color-gold);">Dépouillement Officiel</h2>
-			<p id="total-votes" style="font-size: 1.2rem; color: var(--color-gold-light);">Total des votes : <span class="loader" style="width: 15px; height: 15px; border-width: 2px;"></span></p>
-			<button id="refresh-btn" class="btn" style="margin-top: 1rem; font-size: 0.8rem; padding: 0.5rem 1rem;">Rafraîchir les résultats</button>
-		</div>
-
-		<div class="podium-section">
-			<div class="podium-col">
-				<GlassCard>
-					<h3 class="text-center">👑 Roi du Bal 👑</h3>
-					<div id="king-results" class="results-list"></div>
-				</GlassCard>
-			</div>
-			<div class="podium-col">
-				<GlassCard>
-					<h3 class="text-center">👑 Reine du Bal 👑</h3>
-					<div id="queen-results" class="results-list"></div>
-				</GlassCard>
-			</div>
-		</div>
-
-		<div id="categories-results"></div>
-	</div>
+    <GlassCard>
+      <h3>Votes enregistrés</h3>
+      <div id="votes-list">
+        <p>Les données sont prêtes à être alimentées depuis la base Supabase.</p>
+      </div>
+    </GlassCard>
+  </div>
 </Layout>
 
 <script is:inline>
-	document.addEventListener('DOMContentLoaded', () => {
-		const sessionToken = sessionStorage.getItem('admin_token');
-		if (!sessionToken) return;
+  document.addEventListener('DOMContentLoaded', () => {
+    const totalVotesEl = document.getElementById('total-votes');
 
-		document.getElementById('auth-wall').style.display = 'none';
-		document.getElementById('results-container').style.display = 'block';
+    const fetchResults = async () => {
+      try {
+        const res = await fetch('/api/results');
+        if (res.ok) {
+          const data = await res.json();
+          totalVotesEl.textContent = `Total des bulletins : ${data.total || 0}`;
+        } else if (res.status === 401) {
+          window.location.href = '/admin';
+        }
+      } catch (err) {
+        totalVotesEl.textContent = "Erreur lors du chargement des résultats.";
+      }
+    };
 
-		const totalVotesEl = document.getElementById('total-votes');
-		const kingResultsEl = document.getElementById('king-results');
-		const queenResultsEl = document.getElementById('queen-results');
-		const categoriesResultsEl = document.getElementById('categories-results');
-
-		const getInitials = (name) =>
-			(name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
-
-		const renderAvatar = (candidate, sizeClass) => {
-			if (candidate.photo_url) {
-				return `<img src="${candidate.photo_url}" alt="${candidate.name}" class="${sizeClass}" />`;
-			}
-			return `<div class="${sizeClass} avatar-fallback">${getInitials(candidate.name)}</div>`;
-		};
-
-		const renderPodium = (candidates, container) => {
-			container.innerHTML = '';
-			if (candidates.length === 0) {
-				container.innerHTML = '<p class="text-center">Aucun vote pour le moment.</p>';
-				return;
-			}
-
-			const medals = ['🥇', '🥈', '🥉'];
-			candidates.forEach((c, idx) => {
-				const div = document.createElement('div');
-				div.className = 'podium-item';
-				div.innerHTML = `
-					<span class="rank">${medals[idx] || (idx + 1 + '.')}</span>
-					${renderAvatar(c, 'podium-avatar')}
-					<span class="name">${c.name}</span>
-					<span class="votes">${c.count} vote(s)</span>
-				`;
-				container.appendChild(div);
-			});
-		};
-
-		const renderCategories = (categories) => {
-			categoriesResultsEl.innerHTML = '';
-			categories.forEach(cat => {
-				const card = document.createElement('div');
-				card.className = 'glass-card';
-				card.style.padding = '1.5rem';
-				card.style.marginBottom = '1.5rem';
-
-				let html = `<h3 style="margin-bottom: 1.5rem;">${cat.name}</h3>`;
-
-				if (cat.candidates.length === 0) {
-					html += `<p>Aucun vote.</p>`;
-				} else {
-					const maxVotes = cat.candidates[0]?.count || 1;
-					cat.candidates.slice(0, 5).forEach(c => { // Top 5 max per category
-						const percent = Math.round((c.count / cat.total) * 100);
-						const barWidth = Math.round((c.count / maxVotes) * 100); // Relative to max for better visual scaling
-
-						html += `
-							<div class="bar-container">
-								<div class="bar-info">
-									<span class="bar-name">${renderAvatar(c, 'bar-avatar')}${c.name}</span>
-									<span class="bar-stats">${c.count} votes (${percent}%)</span>
-								</div>
-								<div class="bar-bg">
-									<div class="bar-fill" style="width: ${barWidth}%;"></div>
-								</div>
-							</div>
-						`;
-					});
-				}
-
-				card.innerHTML = html;
-				categoriesResultsEl.appendChild(card);
-			});
-		};
-
-		const fetchResults = async () => {
-			try {
-				// Loading state
-				totalVotesEl.innerHTML = 'Total des votes : <span class="loader" style="width: 15px; height: 15px; border-width: 2px;"></span>';
-
-				const res = await fetch('/api/results');
-				if (res.ok) {
-					const data = await res.json();
-					totalVotesEl.textContent = `Total des bulletins : ${data.total}`;
-
-					renderPodium(data.king, kingResultsEl);
-					renderPodium(data.queen, queenResultsEl);
-					renderCategories(data.categories);
-				}
-			} catch (err) {
-				console.error(err);
-				totalVotesEl.textContent = "Erreur lors du chargement des résultats.";
-			}
-		};
-
-		document.getElementById('refresh-btn').addEventListener('click', fetchResults);
-
-		// Initial fetch
-		fetchResults();
-	});
+    document.getElementById('refresh-btn')?.addEventListener('click', fetchResults);
+    fetchResults();
+  });
 </script>
 
 <style>
-	.text-center { text-align: center; }
-
-	.podium-section {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 2rem;
-		margin-bottom: 2rem;
-	}
-
-	@media (min-width: 768px) {
-		.podium-section {
-			grid-template-columns: 1fr 1fr;
-		}
-	}
-
-	.podium-item {
-		display: flex;
-		align-items: center;
-		padding: 0.75rem;
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 8px;
-		margin-bottom: 0.5rem;
-		border-left: 3px solid var(--color-gold);
-	}
-
-	.podium-item .rank {
-		font-size: 1.5rem;
-		margin-right: 0.75rem;
-		min-width: 30px;
-		text-align: center;
-	}
-
-	.podium-item .name {
-		flex: 1;
-		font-family: var(--font-title);
-		font-weight: 600;
-		font-size: 1.1rem;
-	}
-
-	.podium-item .votes {
-		font-size: 0.9rem;
-		color: var(--color-text-muted);
-		background: rgba(0,0,0,0.3);
-		padding: 0.25rem 0.5rem;
-		border-radius: 4px;
-	}
-
-	.podium-avatar {
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		object-fit: cover;
-		border: 2px solid var(--color-gold);
-		margin-right: 0.75rem;
-		flex-shrink: 0;
-	}
-
-	.bar-avatar {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		object-fit: cover;
-		border: 1px solid rgba(212, 175, 55, 0.4);
-		margin-right: 0.5rem;
-		vertical-align: middle;
-		flex-shrink: 0;
-	}
-
-	.avatar-fallback {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		background: rgba(212, 175, 55, 0.15);
-		color: var(--color-gold);
-		font-weight: 700;
-	}
-	.podium-avatar.avatar-fallback { font-size: 0.9rem; }
-	.bar-avatar.avatar-fallback { font-size: 0.6rem; }
-
-	.bar-container {
-		margin-bottom: 1rem;
-	}
-
-	.bar-info {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.25rem;
-		font-size: 0.9rem;
-	}
-
-	.bar-name {
-		display: flex;
-		align-items: center;
-		font-weight: 600;
-	}
-
-	.bar-stats {
-		color: var(--color-text-muted);
-	}
-
-	.bar-bg {
-		width: 100%;
-		height: 8px;
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.bar-fill {
-		height: 100%;
-		background: linear-gradient(90deg, var(--color-gold) 0%, var(--color-gold-light) 100%);
-		border-radius: 4px;
-		transition: width 1s ease-out;
-		box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
-	}
+  .text-center { text-align: center; }
+  h1 { color: #fff; font-size: 1.8rem; }
+  .btn-secondary {
+    color: var(--gold, #D4AF37);
+    border: 1px solid var(--gold, #D4AF37);
+    padding: 6px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+  .btn-refresh {
+    background: var(--gold, #D4AF37);
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+  }
 </style>
