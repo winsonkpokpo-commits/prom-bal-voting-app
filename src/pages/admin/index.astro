@@ -1,7 +1,12 @@
 ---
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
-import GoldButton from '../../components/GoldButton.astro';
+import { isAdminAuthenticated } from '../../lib/admin-auth';
+
+// 🔴 PROTECTION SSR : Si non connecté, rediriger immédiatement vers la page de login
+if (!isAdminAuthenticated(Astro)) {
+  return Astro.redirect('/admin/login');
+}
 
 const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
 ---
@@ -28,17 +33,15 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
       <path d="M 100,75 C 85,92 55,95 25,82 C 8,74 -2,55 3,38 C 8,18 32,18 65,30 C 82,36 94,44 100,48 C 106,44 118,36 135,30 C 168,18 192,18 197,38 C 202,55 192,74 175,82 C 145,95 115,92 100,75 Z" fill="#09090C" stroke="url(#goldFiligree)" stroke-width="2.2" filter="url(#shadow3D)" />
       <path d="M 32,54 Q 55,40 78,54 Q 55,68 32,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
       <path d="M 122,54 Q 145,40 168,54 Q 145,68 122,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
-      <path d="M 100,12 L 106,28 L 100,24 L 94,28 Z" fill="url(#goldFiligree)" />
-      <circle cx="100" cy="4" r="2.5" fill="#FFFFFF" />
-      <path d="M 100,28 C 82,12 55,10 30,20 C 15,25 8,30 5,18 C 22,8 55,8 85,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
-      <path d="M 100,28 C 118,12 145,10 170,20 C 185,25 192,30 195,18 C 178,8 145,8 115,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
-      <path d="M 48,76 C 32,80 18,72 24,62 C 28,55 40,60 46,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
-      <path d="M 152,76 C 168,80 182,72 176,62 C 172,55 160,60 154,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
     </svg>
 
     <h1>Espace d'Administration</h1>
     <p class="subtitle">Gestion complète des candidats et des catégories</p>
-    <a href="/" class="back-link">← Retour au site principal</a>
+    
+    <div class="header-nav">
+      <a href="/" class="back-link">← Retour au site principal</a>
+      <button id="logout-btn" class="logout-link">🚪 Se déconnecter</button>
+    </div>
   </div>
 
   <div class="admin-grid">
@@ -82,14 +85,25 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
 <script is:inline>
   let isEditing = false;
 
+  // --- BOUTON DE DÉCONNEXION ---
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    window.location.href = '/admin/login';
+  });
+
   // --- CHARGER LA LISTE DES CANDIDATS ---
   async function loadCandidates() {
     const container = document.getElementById('candidates-container');
     if (!container) return;
 
     try {
-      const res = await fetch('/api/admin/candidates');
+      const res = await fetch('/api/admin/candidates', { credentials: 'same-origin' });
       const data = await res.json();
+
+      if (res.status === 401) {
+        window.location.href = '/admin/login';
+        return;
+      }
 
       if (res.ok && data.success) {
         if (!data.candidates || data.candidates.length === 0) {
@@ -98,7 +112,7 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
         }
 
         container.innerHTML = data.candidates.map(c => `
-          <div class="candidate-item" id="candidate-card-${c.id}">
+          <div class="candidate-item">
             <div class="candidate-info">
               ${c.photo_url 
                 ? `<img src="${c.photo_url}" class="avatar-img" alt="${c.name}" />`
@@ -123,7 +137,6 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     }
   }
 
-  // --- PRÉPARER LE FORMULAIRE EN MODE ÉDITION ---
   window.startEdit = (id, name, category) => {
     isEditing = true;
     document.getElementById('edit-candidate-id').value = id;
@@ -131,11 +144,9 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     document.getElementById('category').value = category;
     document.getElementById('submit-btn').innerHTML = '💾 Enregistrer les modifications';
     document.getElementById('edit-badge').classList.remove('hidden');
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- RÉINITIALISER LE FORMULAIRE EN MODE AJOUT ---
   window.resetForm = () => {
     isEditing = false;
     document.getElementById('candidate-form').reset();
@@ -144,12 +155,14 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     document.getElementById('edit-badge').classList.add('hidden');
   };
 
-  // --- SUPPRIMER UN CANDIDAT ---
   window.deleteCandidate = async (id, name) => {
     if (!confirm(`Voulez-vous vraiment supprimer "${name}" ?`)) return;
 
     try {
-      const res = await fetch(`/api/admin/candidates?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/candidates?id=${id}`, { 
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
       if (res.ok) {
         loadCandidates();
       } else {
@@ -160,18 +173,16 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     }
   };
 
-  // --- SOUMISSION DU FORMULAIRE (AJOUT OU MODIFICATION) ---
   document.getElementById('candidate-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-    
+    const formData = new FormData(e.target);
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
       const res = await fetch('/api/admin/candidates', {
         method: method,
-        body: formData
+        body: formData,
+        credentials: 'same-origin'
       });
 
       const data = await res.json();
@@ -183,11 +194,10 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
         alert(data.error || "Une erreur est survenue.");
       }
     } catch (err) {
-      alert("Erreur lors de la connexion au serveur.");
+      alert("Erreur réseau.");
     }
   });
 
-  // Charger au démarrage
   document.addEventListener('DOMContentLoaded', loadCandidates);
 </script>
 
@@ -196,38 +206,32 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     text-align: center;
     padding: 2rem 1rem 1rem 1rem;
   }
-
   .admin-mask-icon {
     width: 120px;
     height: auto;
     margin: 0 auto 1rem auto;
     display: block;
-    animation: float 4s ease-in-out infinite;
   }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
+  .admin-header h1 { font-size: 2rem; color: #fff; margin-bottom: 0.2rem; }
+  .subtitle { color: #a1a1aa; font-size: 0.95rem; margin-bottom: 1rem; }
+  
+  .header-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
   }
-
-  .admin-header h1 {
-    font-size: 2rem;
-    color: #fff;
-    margin-bottom: 0.2rem;
-  }
-
-  .subtitle {
-    color: #a1a1aa;
-    font-size: 0.95rem;
-    margin-bottom: 1rem;
-  }
-
-  .back-link {
-    color: var(--gold, #D4AF37);
-    text-decoration: none;
+  .back-link { color: #D4AF37; text-decoration: none; font-size: 0.85rem; font-weight: bold; }
+  .logout-link {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
     font-size: 0.85rem;
-    font-weight: bold;
   }
+  .logout-link:hover { background: rgba(239, 68, 68, 0.2); }
 
   .admin-grid {
     max-width: 1000px;
@@ -237,32 +241,14 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     gap: 2rem;
     padding: 0 1rem;
   }
-
   @media (min-width: 850px) {
-    .admin-grid {
-      grid-template-columns: 1fr 1fr;
-    }
+    .admin-grid { grid-template-columns: 1fr 1fr; }
   }
 
-  /* --- FORMULAIRE --- */
-  .form-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .form-group label {
-    font-size: 0.85rem;
-    color: #d4d4d8;
-    font-weight: 500;
-  }
-
+  .form-container { display: flex; flex-direction: column; gap: 1.2rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label { font-size: 0.85rem; color: #d4d4d8; font-weight: 500; }
+  
   input[type="text"], select, input[type="file"] {
     width: 100%;
     padding: 10px 12px;
@@ -272,11 +258,7 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     color: #fff;
     box-sizing: border-box;
   }
-
-  select option {
-    background: #18181b;
-    color: #fff;
-  }
+  select option { background: #18181b; color: #fff; }
 
   .gold-action-btn {
     background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);
@@ -286,46 +268,21 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    margin-top: 0.5rem;
-    transition: transform 0.2s ease, filter 0.2s ease;
-  }
-
-  .gold-action-btn:hover {
-    filter: brightness(1.1);
-    transform: translateY(-2px);
   }
 
   .edit-mode-badge {
     background: rgba(212, 175, 55, 0.2);
-    border: 1px solid var(--gold, #D4AF37);
-    color: var(--gold, #D4AF37);
+    border: 1px solid #D4AF37;
+    color: #D4AF37;
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 0.85rem;
     display: flex;
     justify-content: space-between;
-    align-items: center;
   }
+  .cancel-edit { background: transparent; border: none; color: #ef4444; cursor: pointer; text-decoration: underline; }
 
-  .cancel-edit {
-    background: transparent;
-    border: none;
-    color: #ef4444;
-    cursor: pointer;
-    font-weight: bold;
-    text-decoration: underline;
-  }
-
-  /* --- LISTE DES CANDIDATS --- */
-  .candidates-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 5px;
-  }
-
+  .candidates-list { display: flex; flex-direction: column; gap: 0.8rem; max-height: 500px; overflow-y: auto; }
   .candidate-item {
     display: flex;
     align-items: center;
@@ -335,67 +292,25 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     padding: 10px 14px;
     border-radius: 10px;
   }
-
-  .candidate-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .avatar-img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid var(--gold, #D4AF37);
-  }
-
+  .candidate-info { display: flex; align-items: center; gap: 12px; }
+  .avatar-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #D4AF37; }
   .avatar-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    width: 40px; height: 40px; border-radius: 50%;
     background: linear-gradient(135deg, #D4AF37, #856100);
-    color: #000;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: #000; font-weight: bold; display: flex; align-items: center; justify-content: center;
   }
+  .candidate-name { margin: 0; font-size: 0.95rem; color: #fff; }
+  .candidate-cat { font-size: 0.78rem; color: #D4AF37; }
 
-  .candidate-name {
-    margin: 0;
-    font-size: 0.95rem;
-    color: #fff;
-  }
-
-  .candidate-cat {
-    font-size: 0.78rem;
-    color: var(--gold, #D4AF37);
-  }
-
-  .actions-group {
-    display: flex;
-    gap: 6px;
-  }
-
+  .actions-group { display: flex; gap: 6px; }
   .btn-edit, .btn-delete {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 6px 10px;
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s ease;
   }
 
-  .btn-edit:hover { background: rgba(59, 130, 246, 0.3); }
-  .btn-delete:hover { background: rgba(239, 68, 68, 0.3); }
-
-  .loading-text, .empty-text, .error-text {
-    text-align: center;
-    color: #a1a1aa;
-    font-size: 0.9rem;
-    padding: 1rem;
-  }
-
+  .loading-text, .empty-text, .error-text { text-align: center; color: #a1a1aa; font-size: 0.9rem; padding: 1rem; }
   .hidden { display: none !important; }
 </style>
