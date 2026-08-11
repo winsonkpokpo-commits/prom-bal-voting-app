@@ -2,25 +2,6 @@
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
 import GoldButton from '../../components/GoldButton.astro';
-
-let errorMessage = "";
-
-if (Astro.request.method === "POST") {
-  try {
-    const data = await Astro.request.formData();
-    const password = data.get("password");
-
-    // Vérification avec la clé secrète configurée dans Vercel
-    if (password === import.meta.env.ADMIN_SECRET_KEY) {
-      // Redirection vers le tableau de bord ou stockage d'une session simple
-      return Astro.redirect("/admin/results"); // ou la page de gestion admin
-    } else {
-      errorMessage = "Mot de passe incorrect.";
-    }
-  } catch (error) {
-    errorMessage = "Erreur de connexion au serveur.";
-  }
-}
 ---
 
 <Layout title="Administration - CPEG Ste Bakhita">
@@ -30,18 +11,19 @@ if (Astro.request.method === "POST") {
     <h2>Espace Réservé</h2>
 
     <GlassCard>
-      <form method="POST">
+      <form id="admin-login-form">
         <label class="input-label">Code d'accès secret :</label>
-        <input 
-          type="password" 
-          name="password" 
-          placeholder="Entrez le code..." 
-          required 
+        <input
+          type="password"
+          name="password"
+          id="admin-password"
+          placeholder="Entrez le code..."
+          required
         />
-        
-        {errorMessage && <p class="error-text">{errorMessage}</p>}
-        
-        <GoldButton text="Dévérrouiller" type="submit" />
+
+        <p class="error-text" id="admin-error" style="display: none;"></p>
+
+        <GoldButton text="Déverrouiller" type="submit" />
       </form>
 
       <div class="back-link">
@@ -50,6 +32,41 @@ if (Astro.request.method === "POST") {
     </GlassCard>
   </div>
 </Layout>
+
+<script is:inline>
+  document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const errorEl = document.getElementById('admin-error');
+    const passwordInput = document.getElementById('admin-password');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    errorEl.style.display = 'none';
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch('/api/admin/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: passwordInput.value })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        window.location.href = '/admin/results';
+      } else {
+        errorEl.textContent = data.error || 'Code incorrect.';
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+      }
+    } catch (err) {
+      errorEl.textContent = 'Erreur de connexion au serveur.';
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+    }
+  });
+</script>
 
 <style>
   .admin-login-container {
@@ -84,7 +101,7 @@ if (Astro.request.method === "POST") {
   }
 
   .error-text {
-    color: #ef4444; /* Rouge vif moderne */
+    color: #ef4444;
     background: rgba(239, 68, 68, 0.1);
     padding: 10px;
     border-radius: 8px;
