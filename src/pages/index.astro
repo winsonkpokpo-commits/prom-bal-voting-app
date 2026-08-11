@@ -3,7 +3,6 @@ import Layout from '../components/Layout.astro';
 import GlassCard from '../components/GlassCard.astro';
 import GoldButton from '../components/GoldButton.astro';
 
-// Liste des catégories du bal
 const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
 ---
 
@@ -14,23 +13,49 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
   </div>
 
   <div class="hero-section">
-    <svg viewBox="0 0 100 60" class="custom-mask-icon" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 200 110" class="custom-mask-icon" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FFE066" />
-          <stop offset="50%" stop-color="#D4AF37" />
-          <stop offset="100%" stop-color="#997A15" />
+        <linearGradient id="goldFiligree" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFF3B0" />
+          <stop offset="30%" stop-color="#D4AF37" />
+          <stop offset="70%" stop-color="#AA7C11" />
+          <stop offset="100%" stop-color="#FFD700" />
         </linearGradient>
-        <filter id="maskGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#D4AF37" flood-opacity="0.4"/>
+
+        <radialGradient id="maskGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+        </radialGradient>
+
+        <filter id="shadow3D" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#D4AF37" flood-opacity="0.5"/>
         </filter>
       </defs>
-      <path d="M 10 25 C 10 5, 35 10, 50 20 C 65 10, 90 5, 90 25 C 95 45, 75 50, 50 35 C 25 50, 5 45, 10 25 Z" fill="url(#goldGrad)" filter="url(#maskGlow)"/>
-      <path d="M 22 28 Q 30 22 38 28 Q 30 33 22 28 Z" fill="#121212" />
-      <path d="M 62 28 Q 70 22 78 28 Q 70 33 62 28 Z" fill="#121212" />
-      <path d="M 25 15 C 30 10, 40 15, 45 18" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.6" stroke-linecap="round"/>
-      <path d="M 75 15 C 70 10, 60 15, 55 18" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.6" stroke-linecap="round"/>
-      <polygon points="50,8 53,13 50,18 47,13" fill="#FFFFFF" opacity="0.9"/>
+
+      <ellipse cx="100" cy="55" rx="85" ry="45" fill="url(#maskGlow)" />
+
+      <path d="M 100,75 C 85,92 55,95 25,82 C 8,74 -2,55 3,38 C 8,18 32,18 65,30 C 82,36 94,44 100,48 C 106,44 118,36 135,30 C 168,18 192,18 197,38 C 202,55 192,74 175,82 C 145,95 115,92 100,75 Z" 
+            fill="#09090C" stroke="url(#goldFiligree)" stroke-width="2.2" filter="url(#shadow3D)" />
+
+      <path d="M 32,54 Q 55,40 78,54 Q 55,68 32,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
+      <path d="M 122,54 Q 145,40 168,54 Q 145,68 122,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
+
+      <path d="M 100,12 L 106,28 L 100,24 L 94,28 Z" fill="url(#goldFiligree)" />
+      <path d="M 100,5 L 109,24 L 100,20 L 91,24 Z" fill="url(#goldFiligree)" opacity="0.8" />
+      <circle cx="100" cy="4" r="2.5" fill="#FFFFFF" />
+
+      <path d="M 100,28 C 82,12 55,10 30,20 C 15,25 8,30 5,18 C 22,8 55,8 85,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
+      <path d="M 28,26 C 45,18 68,22 80,32" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+      <path d="M 18,44 C 10,36 12,26 22,28 M 12,58 C 4,50 6,38 18,42" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+
+      <path d="M 100,28 C 118,12 145,10 170,20 C 185,25 192,30 195,18 C 178,8 145,8 115,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
+      <path d="M 172,26 C 155,18 132,22 120,32" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+      <path d="M 182,44 C 190,36 188,26 178,28 M 188,58 C 196,50 194,38 182,42" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+
+      <path d="M 48,76 C 32,80 18,72 24,62 C 28,55 40,60 46,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+      <path d="M 152,76 C 168,80 182,72 176,62 C 172,55 160,60 154,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+
+      <path d="M 100,48 L 96,65 L 100,70 L 104,65 Z" fill="url(#goldFiligree)" />
     </svg>
 
     <span class="school-badge">CPEG Ste Bakhita</span>
@@ -65,11 +90,9 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
       notif.classList.remove('hidden');
       notif.classList.add('show');
       
-      // Cache la notification après 4 secondes
       setTimeout(() => {
         notif.classList.remove('show');
         notif.classList.add('hidden');
-        // Nettoie l'URL sans recharger la page
         window.history.replaceState({}, document.title, window.location.pathname);
       }, 4000);
     }
@@ -77,29 +100,27 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
 </script>
 
 <style>
-  /* --- STYLES GÉNÉRAUX ACCUEIL --- */
   .hero-section {
     text-align: center;
-    padding: 2.5rem 1rem 1.5rem 1rem;
+    padding: 2rem 1rem 1.5rem 1rem;
     position: relative;
   }
 
-  /* --- STYLES DU MASQUE VÉNITIEN --- */
+  /* Ajustement de la taille du masque */
   .custom-mask-icon {
-    width: 90px;
+    width: 150px; /* Plus large pour apprécier les détails de la dentelle */
     height: auto;
-    margin: 0 auto 1.5rem auto;
+    margin: 0 auto 1rem auto;
     display: block;
     animation: float-mask 4s ease-in-out infinite;
   }
 
   @keyframes float-mask {
     0% { transform: translateY(0px) scale(1); }
-    50% { transform: translateY(-8px) scale(1.02); }
+    50% { transform: translateY(-7px) scale(1.02); }
     100% { transform: translateY(0px) scale(1); }
   }
 
-  /* --- BADGE ET TITRE --- */
   .school-badge {
     display: inline-block;
     background: rgba(245, 208, 97, 0.1);
@@ -130,7 +151,6 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     line-height: 1.5;
   }
 
-  /* --- FORMULAIRE DE VOTE --- */
   .voting-container {
     max-width: 800px;
     margin: 0 auto;
@@ -166,7 +186,6 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     border-color: var(--gold, #D4AF37);
   }
 
-  /* --- NOTIFICATION DE SUCCÈS --- */
   .notification {
     position: fixed;
     top: 20px;
@@ -181,17 +200,9 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     z-index: 1000;
     transition: opacity 0.5s ease, top 0.5s ease;
   }
-  .hidden {
-    opacity: 0;
-    pointer-events: none;
-    top: -50px;
-  }
-  .show {
-    opacity: 1;
-    top: 20px;
-  }
+  .hidden { opacity: 0; pointer-events: none; top: -50px; }
+  .show { opacity: 1; top: 20px; }
 
-  /* --- PIED DE PAGE --- */
   .footer-admin {
     text-align: center;
     margin-top: 4rem;
