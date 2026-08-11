@@ -1,436 +1,64 @@
 ---
 import Layout from '../components/Layout.astro';
 import GlassCard from '../components/GlassCard.astro';
-import { supabase } from '../lib/supabase';
+import GoldButton from '../components/GoldButton.astro';
 
-// SSR: Fetch config, students and categories directly server-side
-let votingClosed = false;
-let students = [];
-let categories = [];
-
-try {
-  const [{ data: configData }, { data: studentsData }, { data: categoriesData }] = await Promise.all([
-    supabase.from('config').select('voting_closed').eq('id', 1).single(),
-    supabase.from('students').select('*').order('name'),
-    supabase.from('categories').select('*').order('position')
-  ]);
-
-  votingClosed = configData?.voting_closed || false;
-  students = studentsData || [];
-  categories = categoriesData || [];
-} catch (error) {
-  console.error("SSR Erreur:", error);
-}
-
-const studentsJson = JSON.stringify(students);
-const categoriesJson = JSON.stringify(categories);
+// Liste temporaire pour l'affichage (à lier à ton backend plus tard)
+const categories = ["Roi du bal", "Reine du bal", "Le mieux habillé"]; 
 ---
 
-<Layout title="Voter">
-	<div class="hero">
-		<svg class="hero-mask" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-			<path d="M20,60 C20,25 55,10 90,14 C105,16 118,22 120,30 C122,22 135,16 150,14 C185,10 220,25 220,60 C220,85 195,95 175,85 C168,100 152,95 140,88 C133,94 127,94 120,90 C113,94 107,94 100,88 C88,95 72,100 65,85 C45,95 20,85 20,60 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-			<ellipse cx="70" cy="55" rx="26" ry="17" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(-8 70 55)"/>
-			<ellipse cx="170" cy="55" rx="26" ry="17" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(8 170 55)"/>
-			<path d="M205,35 C218,25 228,28 232,18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-		</svg>
-		<p class="eyebrow">Une soirée, un secret, un bal…</p>
-		<h1>Bal Masqué</h1>
-		<p class="hero-sub">Élections de la promotion</p>
-		<div class="ornament">
-			<span></span>
-			<svg viewBox="0 0 24 24" class="ornament-diamond" aria-hidden="true"><path d="M12 0 L24 12 L12 24 L0 12 Z" fill="currentColor"/></svg>
-			<span></span>
-		</div>
-	</div>
+<Layout title="Vote - Bal de Promo">
+  <div class="header">
+    <h1>Bal de Promo 2024</h1>
+    <p>La Nuit des Étoiles - Votez pour vos favoris</p>
+  </div>
 
-	<GlassCard>
-		{votingClosed ? (
-			<div class="closed-message text-center">
-				<h2>Les urnes sont scellées</h2>
-				<p>Le vote pour le Bal de Promo est actuellement fermé. Les résultats seront bientôt dévoilés.</p>
-			</div>
-		) : (
-			<form id="voting-form">
-				<div id="error-box" class="error-msg" style="display: none;"></div>
-				<div id="success-box" class="success-msg" style="display: none;"></div>
+  {categories.map((category) => (
+    <GlassCard title={category}>
+      <form action="/api/vote" method="POST">
+        <input type="hidden" name="category" value={category} />
+        <label style="display:block; margin-bottom: 8px; color: #aaa;">Sélectionnez un candidat :</label>
+        <input type="text" name="voted_for" placeholder="Nom complet du candidat..." required />
+        <GoldButton text="Voter" type="submit" />
+      </form>
+    </GlassCard>
+  ))}
 
-				<div class="form-section">
-					<h3>Qui êtes-vous ?</h3>
-					<p>Sélectionnez votre nom pour voter. Votre choix restera anonyme, mais cela nous permet d'éviter les votes multiples.</p>
-					<input type="text" class="picker-search" data-search-for="voter-picker" placeholder="Rechercher votre nom..." />
-					<div id="voter-picker" class="candidate-grid"></div>
-				</div>
-
-				<hr class="divider" />
-
-				<div class="form-section">
-					<h3>Couronne Royale</h3>
-
-					<label>Roi du Bal</label>
-					<input type="text" class="picker-search" data-search-for="king-picker" placeholder="Rechercher..." />
-					<div id="king-picker" class="candidate-grid"></div>
-
-					<label style="margin-top: 1.5rem;">Reine du Bal</label>
-					<input type="text" class="picker-search" data-search-for="queen-picker" placeholder="Rechercher..." />
-					<div id="queen-picker" class="candidate-grid"></div>
-				</div>
-
-				{categories.length > 0 && <hr class="divider" />}
-
-				<div class="form-section">
-					{categories.length > 0 && <h3>Catégories Spéciales</h3>}
-					<div id="categories-container">
-						{categories.map((c) => (
-							<div class="category-field">
-								<label>{c.name}</label>
-								<input type="text" class="picker-search" data-search-for={`cat-picker-${c.id}`} placeholder="Rechercher..." />
-								<div id={`cat-picker-${c.id}`} class="candidate-grid" data-category-id={c.id}></div>
-							</div>
-						))}
-					</div>
-				</div>
-
-				<div class="text-center" style="margin-top: 2rem;">
-					<button type="submit" id="submit-btn">Déposer mon vote</button>
-				</div>
-			</form>
-		)}
-	</GlassCard>
+  <div class="admin-link-container">
+    <a href="/admin" class="admin-link">
+      <span class="icon">🔒</span> Accès Administrateur
+    </a>
+  </div>
 </Layout>
 
-<script is:inline define:vars={{ studentsJson, categoriesJson }}>
-	document.addEventListener('DOMContentLoaded', () => {
-		const form = document.getElementById('voting-form');
-		if (!form) return;
-
-		const submitBtn = document.getElementById('submit-btn');
-		const errorBox = document.getElementById('error-box');
-		const successBox = document.getElementById('success-box');
-
-		const students = JSON.parse(studentsJson);
-		const categories = JSON.parse(categoriesJson);
-
-		const getInitials = (name) =>
-			(name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
-
-		const renderAvatar = (student) => {
-			if (student.photo_url) {
-				return `<img src="${student.photo_url}" alt="${student.name}" class="avatar-img" loading="lazy" />`;
-			}
-			return `<div class="avatar-fallback">${getInitials(student.name)}</div>`;
-		};
-
-		// Grille de cartes-photo cliquables avec recherche.
-		// allowBlank ajoute une carte "Vote Blanc" (abstention volontaire).
-		const createPicker = (gridId, searchSelector, { allowBlank = false } = {}) => {
-			const grid = document.getElementById(gridId);
-			const searchInput = document.querySelector(searchSelector);
-			let selectedId = '';
-
-			const render = (filterText = '') => {
-				const filtered = students.filter((s) => s.name.toLowerCase().includes(filterText.toLowerCase()));
-				grid.innerHTML = '';
-
-				if (allowBlank) {
-					const blankCard = document.createElement('button');
-					blankCard.type = 'button';
-					blankCard.className = 'candidate-card blank-card' + (selectedId === '' ? ' selected' : '');
-					blankCard.innerHTML = `<div class="avatar-fallback blank">—</div><span>Vote Blanc</span>`;
-					blankCard.addEventListener('click', () => {
-						selectedId = '';
-						render(searchInput ? searchInput.value : '');
-					});
-					grid.appendChild(blankCard);
-				}
-
-				filtered.forEach((s) => {
-					const card = document.createElement('button');
-					card.type = 'button';
-					card.className = 'candidate-card' + (selectedId === s.id ? ' selected' : '');
-					card.innerHTML = `${renderAvatar(s)}<span>${s.name}</span>`;
-					card.addEventListener('click', () => {
-						selectedId = s.id;
-						render(searchInput ? searchInput.value : '');
-					});
-					grid.appendChild(card);
-				});
-
-				if (filtered.length === 0 && !allowBlank) {
-					grid.innerHTML = '<p class="empty-hint">Aucun résultat.</p>';
-				}
-			};
-
-			searchInput?.addEventListener('input', (e) => render(e.target.value));
-			render();
-
-			return { getSelected: () => selectedId };
-		};
-
-		const voterPicker = createPicker('voter-picker', '[data-search-for="voter-picker"]');
-		const kingPicker = createPicker('king-picker', '[data-search-for="king-picker"]', { allowBlank: true });
-		const queenPicker = createPicker('queen-picker', '[data-search-for="queen-picker"]', { allowBlank: true });
-
-		const categoryPickers = {};
-		categories.forEach((c) => {
-			categoryPickers[c.id] = createPicker(
-				`cat-picker-${c.id}`,
-				`[data-search-for="cat-picker-${c.id}"]`,
-				{ allowBlank: true }
-			);
-		});
-
-		form.addEventListener('submit', async (e) => {
-			e.preventDefault();
-
-			errorBox.style.display = 'none';
-			successBox.style.display = 'none';
-
-			const voterId = voterPicker.getSelected();
-			if (!voterId) {
-				errorBox.textContent = 'Veuillez sélectionner votre nom.';
-				errorBox.style.display = 'block';
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-				return;
-			}
-
-			const voterInfo = students.find((s) => s.id === voterId);
-
-			const catVotes = {};
-			categories.forEach((c) => {
-				const val = categoryPickers[c.id].getSelected();
-				if (val) catVotes[c.id] = val;
-			});
-
-			const payload = {
-				voter_slug: voterId,
-				voter_name: voterInfo.name,
-				king: kingPicker.getSelected(),
-				queen: queenPicker.getSelected(),
-				categories: catVotes
-			};
-
-			submitBtn.disabled = true;
-			submitBtn.innerHTML = '<span class="loader"></span> Envoi...';
-
-			try {
-				const res = await fetch('/api/vote', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-
-				const data = await res.json();
-
-				if (!res.ok) {
-					throw new Error(data.error || 'Erreur lors du vote');
-				}
-
-				successBox.textContent = 'Votre vote a été enregistré avec succès ! Vous pouvez modifier votre vote tant que les urnes sont ouvertes.';
-				successBox.style.display = 'block';
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-			} catch (err) {
-				errorBox.textContent = err.message || 'Une erreur réseau est survenue.';
-				errorBox.style.display = 'block';
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-			} finally {
-				submitBtn.disabled = false;
-				submitBtn.textContent = 'Déposer mon vote';
-			}
-		});
-	});
-</script>
-
 <style>
-	.text-center { text-align: center; }
-	.closed-message h2 { font-size: 2rem; margin-bottom: 1rem; }
+  .header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .header p {
+    color: #a0a0a0;
+    font-style: italic;
+    font-size: 1.2rem;
+  }
 
-	.hero {
-		position: relative;
-		text-align: center;
-		padding: 1rem 0 2rem;
-		overflow: hidden;
-	}
+  .admin-link-container {
+    text-align: center;
+    margin-top: 4rem;
+  }
 
-	.hero-mask {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 480px;
-		max-width: 140%;
-		height: auto;
-		transform: translate(-50%, -55%);
-		color: var(--color-gold);
-		opacity: 0.07;
-		pointer-events: none;
-	}
+  .admin-link {
+    color: rgba(212, 175, 55, 0.5);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-	.eyebrow {
-		font-family: var(--font-accent);
-		font-style: italic;
-		font-size: 1.2rem;
-		color: var(--color-gold-light);
-		letter-spacing: 0.03em;
-		margin: 0 0 0.25rem;
-		position: relative;
-	}
-
-	.hero h1 {
-		position: relative;
-		margin-bottom: 0.25rem;
-	}
-
-	.hero-sub {
-		font-family: var(--font-body);
-		font-size: 0.9rem;
-		text-transform: uppercase;
-		letter-spacing: 0.25em;
-		color: var(--color-text-muted);
-		margin: 0 0 1.5rem;
-		position: relative;
-	}
-
-	.ornament {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.75rem;
-		position: relative;
-	}
-
-	.ornament span {
-		width: 60px;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.6));
-	}
-
-	.ornament span:last-child {
-		background: linear-gradient(90deg, rgba(212, 175, 55, 0.6), transparent);
-	}
-
-	.ornament-diamond {
-		width: 10px;
-		height: 10px;
-		color: var(--color-gold);
-	}
-
-	.form-section {
-		margin-bottom: 1.5rem;
-	}
-
-	.form-section h3 {
-		font-size: 1.5rem;
-		margin-bottom: 1rem;
-		border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-		padding-bottom: 0.5rem;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: 500;
-		color: var(--color-gold-light);
-	}
-
-	.divider {
-		border: 0;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
-		margin: 2rem 0;
-	}
-
-	.category-field {
-		margin-bottom: 1.5rem;
-	}
-
-	.picker-search {
-		margin-bottom: 0.75rem;
-	}
-
-	.candidate-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-		gap: 0.75rem;
-		max-height: 320px;
-		overflow-y: auto;
-		padding: 0.75rem;
-		margin-bottom: 1rem;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid rgba(212, 175, 55, 0.1);
-		border-radius: 8px;
-	}
-
-	.candidate-grid::-webkit-scrollbar { width: 6px; }
-	.candidate-grid::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
-	.candidate-grid::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.5); border-radius: 10px; }
-
-	.candidate-card {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.4rem;
-		background: rgba(255, 255, 255, 0.04);
-		border: 2px solid transparent;
-		border-radius: 8px;
-		padding: 0.6rem 0.4rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-align: center;
-		box-shadow: none;
-	}
-
-	.candidate-card:hover {
-		background: rgba(212, 175, 55, 0.1);
-		transform: translateY(-2px);
-		box-shadow: none;
-	}
-
-	.candidate-card.selected {
-		border-color: var(--color-gold);
-		background: rgba(212, 175, 55, 0.15);
-		box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
-	}
-
-	.candidate-card span {
-		font-size: 0.8rem;
-		line-height: 1.2;
-		color: var(--color-text-main);
-		word-break: break-word;
-	}
-
-	.blank-card span { color: var(--color-text-muted); }
-
-	.avatar-img {
-		width: 48px;
-		height: 48px;
-		border-radius: 50%;
-		object-fit: cover;
-		border: 2px solid rgba(212, 175, 55, 0.3);
-	}
-
-	.avatar-fallback {
-		width: 48px;
-		height: 48px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: rgba(212, 175, 55, 0.15);
-		color: var(--color-gold);
-		font-weight: 700;
-		font-size: 1rem;
-		border: 2px solid rgba(212, 175, 55, 0.3);
-	}
-
-	.avatar-fallback.blank {
-		background: rgba(255, 255, 255, 0.05);
-		color: var(--color-text-muted);
-	}
-
-	.empty-hint {
-		grid-column: 1 / -1;
-		text-align: center;
-		color: var(--color-text-muted);
-		padding: 1rem;
-	}
+  .admin-link:hover {
+    color: var(--gold);
+  }
 </style>
