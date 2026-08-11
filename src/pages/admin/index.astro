@@ -26,7 +26,7 @@ const isAuthenticated = requireAdminSession(Astro);
         </GlassCard>
       </div>
     ) : (
-      /* --- PANNEAU DE GESTION (QUAND CONNECTÉ) --- */
+      /* --- PANNEAU DE GESTION --- */
       <div class="dashboard-box">
         <div class="admin-header">
           <h1>⚙️ Gestion du Bal Masqué</h1>
@@ -39,7 +39,7 @@ const isAuthenticated = requireAdminSession(Astro);
         <GlassCard title="➕ Ajouter un(e) Candidat(e)">
           <form id="add-candidate-form" class="form-grid">
             <div class="form-group">
-              <label>Nom & Prénom du candidat :</label>
+              <label>Nom & Prénom :</label>
               <input type="text" id="candidate-name" placeholder="Ex: Marie KPOKPO" required />
             </div>
 
@@ -54,13 +54,14 @@ const isAuthenticated = requireAdminSession(Astro);
             </div>
 
             <div class="form-group full-width">
-              <label>URL de la Photo (Lien d'image ou Supabase Storage) :</label>
-              <input type="url" id="candidate-photo" placeholder="https://..." />
+              <label>Photo du candidat (Optionnel) :</label>
+              <input type="file" id="candidate-file" accept="image/*" />
+              <small class="help-text">Sélectionnez une image depuis votre téléphone ou PC.</small>
             </div>
 
             <div class="full-width">
               <p id="candidate-msg" class="info-text" style="display: none;"></p>
-              <GoldButton text="Enregistrer le candidat" type="submit" />
+              <GoldButton text="Enregistrer le candidat" type="submit" id="submit-btn" />
             </div>
           </form>
         </GlassCard>
@@ -70,7 +71,7 @@ const isAuthenticated = requireAdminSession(Astro);
 </Layout>
 
 <script is:inline>
-  // Connexion
+  // Connexion Admin
   document.getElementById('admin-login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const password = document.getElementById('admin-password').value;
@@ -91,31 +92,39 @@ const isAuthenticated = requireAdminSession(Astro);
     }
   });
 
-  // Déconnexion
+  // Déconnexion Admin
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
     window.location.reload();
   });
 
-  // Ajout de candidat (API)
+  // Soumission du candidat avec upload d'image
   document.getElementById('add-candidate-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const msgEl = document.getElementById('candidate-msg');
-    msgEl.style.display = 'none';
+    const fileInput = document.getElementById('candidate-file');
+    const submitBtn = document.getElementById('submit-btn');
 
-    const payload = {
-      name: document.getElementById('candidate-name').value,
-      category: document.getElementById('candidate-category').value,
-      photo_url: document.getElementById('candidate-photo').value
-    };
+    msgEl.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('name', document.getElementById('candidate-name').value);
+    formData.append('category', document.getElementById('candidate-category').value);
+
+    // Si une photo est sélectionnée
+    if (fileInput.files && fileInput.files[0]) {
+      formData.append('photo', fileInput.files[0]);
+    }
 
     try {
       const res = await fetch('/api/admin/candidates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: formData // On envoie le FormData directement (multipart/form-data)
       });
+
       const data = await res.json();
+
       if (res.ok && data.success) {
         msgEl.textContent = "✅ Candidat ajouté avec succès !";
         msgEl.style.color = "#4ade80";
@@ -127,9 +136,11 @@ const isAuthenticated = requireAdminSession(Astro);
         msgEl.style.display = "block";
       }
     } catch (err) {
-      msgEl.textContent = "Erreur réseau";
+      msgEl.textContent = "Erreur réseau lors de l'envoi.";
       msgEl.style.color = "#ef4444";
       msgEl.style.display = "block";
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 </script>
@@ -153,8 +164,9 @@ const isAuthenticated = requireAdminSession(Astro);
     background: rgba(0,0,0,0.4); color: #fff; box-sizing: border-box;
   }
 
+  .help-text { color: #a1a1aa; font-size: 0.8rem; margin-top: 0.3rem; display: block; }
   .btn-outline { color: var(--gold, #D4AF37); border: 1px solid var(--gold, #D4AF37); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
   .btn-danger { background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
   .error-text { color: #ef4444; margin-top: 1rem; }
-  .info-text { margin-bottom: 1rem; font-weight: 600; }
+  .info-text { margin-bottom: 1rem; font-weight: 600; text-align: center; }
 </style>
