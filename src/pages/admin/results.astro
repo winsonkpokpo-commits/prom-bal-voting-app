@@ -50,7 +50,7 @@ import GlassCard from '../../components/GlassCard.astro';
 <script is:inline>
 	document.addEventListener('DOMContentLoaded', () => {
 		const sessionToken = sessionStorage.getItem('admin_token');
-		if (!sessionToken || sessionToken !== "admin_token_ok") return;
+		if (!sessionToken) return;
 
 		document.getElementById('auth-wall').style.display = 'none';
 		document.getElementById('results-container').style.display = 'block';
@@ -60,19 +60,30 @@ import GlassCard from '../../components/GlassCard.astro';
 		const queenResultsEl = document.getElementById('queen-results');
 		const categoriesResultsEl = document.getElementById('categories-results');
 
+		const getInitials = (name) =>
+			(name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+
+		const renderAvatar = (candidate, sizeClass) => {
+			if (candidate.photo_url) {
+				return `<img src="${candidate.photo_url}" alt="${candidate.name}" class="${sizeClass}" />`;
+			}
+			return `<div class="${sizeClass} avatar-fallback">${getInitials(candidate.name)}</div>`;
+		};
+
 		const renderPodium = (candidates, container) => {
 			container.innerHTML = '';
 			if (candidates.length === 0) {
 				container.innerHTML = '<p class="text-center">Aucun vote pour le moment.</p>';
 				return;
 			}
-			
+
 			const medals = ['🥇', '🥈', '🥉'];
 			candidates.forEach((c, idx) => {
 				const div = document.createElement('div');
 				div.className = 'podium-item';
 				div.innerHTML = `
 					<span class="rank">${medals[idx] || (idx + 1 + '.')}</span>
+					${renderAvatar(c, 'podium-avatar')}
 					<span class="name">${c.name}</span>
 					<span class="votes">${c.count} vote(s)</span>
 				`;
@@ -87,9 +98,9 @@ import GlassCard from '../../components/GlassCard.astro';
 				card.className = 'glass-card';
 				card.style.padding = '1.5rem';
 				card.style.marginBottom = '1.5rem';
-				
+
 				let html = `<h3 style="margin-bottom: 1.5rem;">${cat.name}</h3>`;
-				
+
 				if (cat.candidates.length === 0) {
 					html += `<p>Aucun vote.</p>`;
 				} else {
@@ -97,11 +108,11 @@ import GlassCard from '../../components/GlassCard.astro';
 					cat.candidates.slice(0, 5).forEach(c => { // Top 5 max per category
 						const percent = Math.round((c.count / cat.total) * 100);
 						const barWidth = Math.round((c.count / maxVotes) * 100); // Relative to max for better visual scaling
-						
+
 						html += `
 							<div class="bar-container">
 								<div class="bar-info">
-									<span class="bar-name">${c.name}</span>
+									<span class="bar-name">${renderAvatar(c, 'bar-avatar')}${c.name}</span>
 									<span class="bar-stats">${c.count} votes (${percent}%)</span>
 								</div>
 								<div class="bar-bg">
@@ -111,7 +122,7 @@ import GlassCard from '../../components/GlassCard.astro';
 						`;
 					});
 				}
-				
+
 				card.innerHTML = html;
 				categoriesResultsEl.appendChild(card);
 			});
@@ -121,12 +132,12 @@ import GlassCard from '../../components/GlassCard.astro';
 			try {
 				// Loading state
 				totalVotesEl.innerHTML = 'Total des votes : <span class="loader" style="width: 15px; height: 15px; border-width: 2px;"></span>';
-				
+
 				const res = await fetch('/api/results');
 				if (res.ok) {
 					const data = await res.json();
 					totalVotesEl.textContent = `Total des bulletins : ${data.total}`;
-					
+
 					renderPodium(data.king, kingResultsEl);
 					renderPodium(data.queen, queenResultsEl);
 					renderCategories(data.categories);
@@ -146,20 +157,20 @@ import GlassCard from '../../components/GlassCard.astro';
 
 <style>
 	.text-center { text-align: center; }
-	
+
 	.podium-section {
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 2rem;
 		margin-bottom: 2rem;
 	}
-	
+
 	@media (min-width: 768px) {
 		.podium-section {
 			grid-template-columns: 1fr 1fr;
 		}
 	}
-	
+
 	.podium-item {
 		display: flex;
 		align-items: center;
@@ -169,21 +180,21 @@ import GlassCard from '../../components/GlassCard.astro';
 		margin-bottom: 0.5rem;
 		border-left: 3px solid var(--color-gold);
 	}
-	
+
 	.podium-item .rank {
 		font-size: 1.5rem;
-		margin-right: 1rem;
+		margin-right: 0.75rem;
 		min-width: 30px;
 		text-align: center;
 	}
-	
+
 	.podium-item .name {
 		flex: 1;
 		font-family: var(--font-title);
 		font-weight: 600;
 		font-size: 1.1rem;
 	}
-	
+
 	.podium-item .votes {
 		font-size: 0.9rem;
 		color: var(--color-text-muted);
@@ -192,6 +203,38 @@ import GlassCard from '../../components/GlassCard.astro';
 		border-radius: 4px;
 	}
 
+	.podium-avatar {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 2px solid var(--color-gold);
+		margin-right: 0.75rem;
+		flex-shrink: 0;
+	}
+
+	.bar-avatar {
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 1px solid rgba(212, 175, 55, 0.4);
+		margin-right: 0.5rem;
+		vertical-align: middle;
+		flex-shrink: 0;
+	}
+
+	.avatar-fallback {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(212, 175, 55, 0.15);
+		color: var(--color-gold);
+		font-weight: 700;
+	}
+	.podium-avatar.avatar-fallback { font-size: 0.9rem; }
+	.bar-avatar.avatar-fallback { font-size: 0.6rem; }
+
 	.bar-container {
 		margin-bottom: 1rem;
 	}
@@ -199,14 +242,17 @@ import GlassCard from '../../components/GlassCard.astro';
 	.bar-info {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
 		margin-bottom: 0.25rem;
 		font-size: 0.9rem;
 	}
 
 	.bar-name {
+		display: flex;
+		align-items: center;
 		font-weight: 600;
 	}
-	
+
 	.bar-stats {
 		color: var(--color-text-muted);
 	}
