@@ -98,7 +98,7 @@ const isAuthenticated = requireAdminSession(Astro);
     window.location.reload();
   });
 
-  // Soumission du candidat avec upload d'image
+  // Ajout de candidat
   document.getElementById('add-candidate-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const msgEl = document.getElementById('candidate-msg');
@@ -112,7 +112,6 @@ const isAuthenticated = requireAdminSession(Astro);
     formData.append('name', document.getElementById('candidate-name').value);
     formData.append('category', document.getElementById('candidate-category').value);
 
-    // Si une photo est sélectionnée
     if (fileInput.files && fileInput.files[0]) {
       formData.append('photo', fileInput.files[0]);
     }
@@ -120,10 +119,15 @@ const isAuthenticated = requireAdminSession(Astro);
     try {
       const res = await fetch('/api/admin/candidates', {
         method: 'POST',
-        body: formData // On envoie le FormData directement (multipart/form-data)
+        body: formData
       });
 
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = { error: `Erreur HTTP ${res.status}: API non trouvée ou indisponible.` };
+      }
 
       if (res.ok && data.success) {
         msgEl.textContent = "✅ Candidat ajouté avec succès !";
@@ -136,7 +140,7 @@ const isAuthenticated = requireAdminSession(Astro);
         msgEl.style.display = "block";
       }
     } catch (err) {
-      msgEl.textContent = "Erreur réseau lors de l'envoi.";
+      msgEl.textContent = "Erreur réseau: " + err.message;
       msgEl.style.color = "#ef4444";
       msgEl.style.display = "block";
     } finally {
