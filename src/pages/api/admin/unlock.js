@@ -1,37 +1,54 @@
-import { createAdminSession, buildAdminSessionCookie } from '../../../lib/admin-auth';
-
-export async function POST({ request }) {
+export async function POST({ request, cookies }) {
   try {
-    const body = await request.json();
-    const { code } = body;
+    const body = await request.json().catch(() => ({}));
+    const code = body.code || body.password;
 
-    // Vérification du mot de passe avec la variable d'environnement
-    if (code === import.meta.env.ADMIN_SECRET_KEY) {
-      // 1. On crée le jeton chiffré
-      const token = createAdminSession();
-      // 2. On fabrique l'en-tête du cookie
-      const cookieHeader = buildAdminSessionCookie(token);
+    // Récupération de la clé secrète configurée sur Vercel
+    const adminSecret = process.env.ADMIN_SECRET_KEY || import.meta.env.ADMIN_SECRET_KEY;
 
-      // 3. On répond "Succès" en ATTACHANT le cookie au navigateur
+    if (!adminSecret) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "La variable ADMIN_SECRET_KEY n'est pas configurée dans Vercel." 
+        }), 
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (code && code.trim() === adminSecret.trim()) {
+      // Poser le cookie d'authentification via l'API native d'Astro
+      cookies.set('admin_session', 'authenticated', {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
+        maxAge: 60 * 60 * 8 // Session valide pendant 8 heures
+      });
+
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': cookieHeader
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Si le code est faux
-    return new Response(JSON.stringify({ success: false, error: 'Code incorrect' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
+    return new Response(
+      JSON.stringify({ success: false, error: 'Code d\'accès incorrect.' }), 
+      {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: 'Erreur serveur' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return new Response(
+      JSON.stringify({ success: false, error: 'Erreur serveur : ' + error.message }), 
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
