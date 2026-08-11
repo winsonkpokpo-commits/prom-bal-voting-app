@@ -1,0 +1,94 @@
+---
+import Layout from '../../components/Layout.astro';
+import GlassCard from '../../components/GlassCard.astro';
+import { isAdminAuthenticated } from '../../lib/admin-auth';
+
+// Si déjà connecté, rediriger directement vers /admin
+if (isAdminAuthenticated(Astro)) {
+  return Astro.redirect('/admin');
+}
+---
+
+<Layout title="Connexion Administration">
+  <div class="login-container">
+    <GlassCard title="🔒 Accès Administrateur">
+      <form id="login-form" class="form-container">
+        <div class="form-group">
+          <label for="password">Mot de passe d'administration :</label>
+          <input type="password" id="password" name="password" required placeholder="Entrez le mot de passe" />
+        </div>
+        <p id="error-msg" class="error-msg hidden"></p>
+        <button type="submit" class="gold-action-btn">Se connecter</button>
+      </form>
+    </GlassCard>
+  </div>
+</Layout>
+
+<script is:inline>
+  document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const password = document.getElementById('password').value;
+    const errorMsg = document.getElementById('error-msg');
+
+    errorMsg.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        window.location.href = '/admin';
+      } else {
+        errorMsg.textContent = data.error || 'Mot de passe incorrect';
+        errorMsg.classList.remove('hidden');
+      }
+    } catch (err) {
+      errorMsg.textContent = 'Erreur de connexion au serveur';
+      errorMsg.classList.remove('hidden');
+    }
+  });
+</script>
+
+<style>
+  .login-container {
+    max-width: 420px;
+    margin: 4rem auto;
+    padding: 0 1rem;
+  }
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  input[type="password"] {
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #fff;
+  }
+  .gold-action-btn {
+    background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);
+    color: #000;
+    font-weight: bold;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .error-msg {
+    color: #ef4444;
+    font-size: 0.85rem;
+  }
+  .hidden { display: none; }
+</style>
