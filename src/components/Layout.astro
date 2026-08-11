@@ -10,8 +10,8 @@ const { title } = Astro.props;
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Vote pour le Bal de Promo" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} - Bal de Promo</title>
   </head>
@@ -25,20 +25,18 @@ const { title } = Astro.props;
 
 <style is:global>
   :root {
-    --gold: #d4af37; 
-    --gold-hover: #f1c40f; 
-    --black-bg: #0a0a0a; 
-    --black-accent: #1a1a1a; 
-    --white: #ffffff; 
-    --text-color: #e0e0e0; 
+    --gold: #F5D061; /* Un or plus "champagne" et dynamique */
+    --gold-glow: rgba(245, 208, 97, 0.4);
+    --bg-dark: #09090b; /* Noir très profond façon mode sombre iOS */
+    --glass-bg: rgba(20, 20, 25, 0.6);
   }
 
   html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Playfair Display', 'Times New Roman', serif;
-    background-color: var(--black-bg);
-    color: var(--text-color);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif; /* Adieu la vieille police ! */
+    background-color: var(--bg-dark);
+    color: #f4f4f5;
   }
 
   .background-overlay {
@@ -47,43 +45,79 @@ const { title } = Astro.props;
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+    background: radial-gradient(circle at top, #1a1a1f 0%, var(--bg-dark) 100%);
     z-index: -1;
   }
 
   main {
-    max-width: 800px;
+    max-width: 600px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.5rem;
     min-height: 100vh;
   }
 
+  /* Typographie modernisée */
   h1, h2, h3 {
     color: var(--gold);
     text-align: center;
-    font-weight: bold;
-    letter-spacing: 2px;
+    font-weight: 800;
+    letter-spacing: 1px;
     text-transform: uppercase;
+    text-shadow: 0 0 15px rgba(245, 208, 97, 0.2); /* Léger halo lumineux */
   }
 
-  h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-  h2 { font-size: 1.8rem; }
+  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; }
   
+  /* Champs de recherche façon app mobile moderne */
   input, select {
-    background-color: var(--black-accent);
-    color: var(--white);
-    border: 1px solid rgba(212, 175, 55, 0.4);
-    padding: 12px;
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 20px;
+    border-radius: 16px; /* Bords bien arrondis */
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 1rem;
     font-family: inherit;
+    font-size: 1rem;
+    transition: all 0.3s ease;
   }
 
   input:focus, select:focus {
     border-color: var(--gold);
     outline: none;
-    box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px var(--gold-glow);
+  }
+
+  /* Transformation totale de TOUS les boutons (adieu les rectangles blancs) */
+  button {
+    background: linear-gradient(135deg, #F5D061 0%, #E6B02E 100%);
+    color: #111;
+    border: none;
+    padding: 16px 24px;
+    border-radius: 50px; /* Boutons "Pillule" ultra stylés */
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    width: 100%;
+    box-shadow: 0 4px 20px var(--gold-glow);
+    margin-top: 10px;
+  }
+
+  button:active {
+    transform: scale(0.96); /* Effet quand on clique/tape dessus */
+  }
+
+  /* Style spécial pour les boutons "Vote Blanc" pour ne pas voler la vedette au bouton principal */
+  button:contains("Vote Blanc"), .vote-blanc {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #a1a1aa !important;
+    box-shadow: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 </style>
