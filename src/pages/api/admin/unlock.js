@@ -7,7 +7,7 @@ export const POST = async ({ request }) => {
 
     if (code === adminKey) {
       const token = createAdminSession();
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, loggedIn: true }), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
