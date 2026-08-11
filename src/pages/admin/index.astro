@@ -1,14 +1,12 @@
----
+------
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
 import { isAdminAuthenticated } from '../../lib/admin-auth';
 
-// 🔴 PROTECTION SSR : Si non connecté, rediriger immédiatement vers la page de login
+// Redirection directe côté serveur si l'utilisateur n'est pas connecté
 if (!isAdminAuthenticated(Astro)) {
-  return Astro.redirect('/admin/login');
+  return Astro.redirect('/admin');
 }
-
-const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
 ---
 
 <Layout title="Administration - Bal Masqué 2026">
