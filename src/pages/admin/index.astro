@@ -2,175 +2,400 @@
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
 import GoldButton from '../../components/GoldButton.astro';
-import { requireAdminSession } from '../../lib/admin-auth';
 
-const isAuthenticated = requireAdminSession(Astro);
+const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
 ---
 
-<Layout title="Administration - CPEG Ste Bakhita">
-  <div class="admin-container">
-    {!isAuthenticated ? (
-      /* --- FORMULAIRE DE CONNEXION --- */
-      <div class="login-box">
-        <div class="mask-icon">🎭</div>
-        <h1>Espace d'Administration</h1>
-        <p class="subtitle">Entrez le code secret pour gérer le bal</p>
+<Layout title="Administration - Bal Masqué 2026">
+  <div class="admin-header">
+    <svg viewBox="0 0 200 110" class="admin-mask-icon" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="goldFiligree" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFF3B0" />
+          <stop offset="30%" stop-color="#D4AF37" />
+          <stop offset="70%" stop-color="#AA7C11" />
+          <stop offset="100%" stop-color="#FFD700" />
+        </linearGradient>
+        <radialGradient id="maskGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="shadow3D" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#D4AF37" flood-opacity="0.5"/>
+        </filter>
+      </defs>
+      <ellipse cx="100" cy="55" rx="85" ry="45" fill="url(#maskGlow)" />
+      <path d="M 100,75 C 85,92 55,95 25,82 C 8,74 -2,55 3,38 C 8,18 32,18 65,30 C 82,36 94,44 100,48 C 106,44 118,36 135,30 C 168,18 192,18 197,38 C 202,55 192,74 175,82 C 145,95 115,92 100,75 Z" fill="#09090C" stroke="url(#goldFiligree)" stroke-width="2.2" filter="url(#shadow3D)" />
+      <path d="M 32,54 Q 55,40 78,54 Q 55,68 32,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
+      <path d="M 122,54 Q 145,40 168,54 Q 145,68 122,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
+      <path d="M 100,12 L 106,28 L 100,24 L 94,28 Z" fill="url(#goldFiligree)" />
+      <circle cx="100" cy="4" r="2.5" fill="#FFFFFF" />
+      <path d="M 100,28 C 82,12 55,10 30,20 C 15,25 8,30 5,18 C 22,8 55,8 85,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
+      <path d="M 100,28 C 118,12 145,10 170,20 C 185,25 192,30 195,18 C 178,8 145,8 115,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
+      <path d="M 48,76 C 32,80 18,72 24,62 C 28,55 40,60 46,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+      <path d="M 152,76 C 168,80 182,72 176,62 C 172,55 160,60 154,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
+    </svg>
 
-        <GlassCard>
-          <form id="admin-login-form">
-            <label class="input-label">Code d'accès :</label>
-            <input type="password" id="admin-password" placeholder="Code secret..." required />
-            <p class="error-text" id="login-error" style="display: none;"></p>
-            <GoldButton text="Se connecter" type="submit" />
-          </form>
-        </GlassCard>
-      </div>
-    ) : (
-      /* --- PANNEAU DE GESTION --- */
-      <div class="dashboard-box">
-        <div class="admin-header">
-          <h1>⚙️ Gestion du Bal Masqué</h1>
-          <div class="header-btns">
-            <a href="/results" target="_blank" class="btn-outline">👁️ Voir Résultats Publics</a>
-            <button id="logout-btn" class="btn-danger">Déconnexion</button>
-          </div>
+    <h1>Espace d'Administration</h1>
+    <p class="subtitle">Gestion complète des candidats et des catégories</p>
+    <a href="/" class="back-link">← Retour au site principal</a>
+  </div>
+
+  <div class="admin-grid">
+    <GlassCard title="✍️ Ajouter / Modifier un Candidat">
+      <form id="candidate-form" class="form-container">
+        <input type="hidden" id="edit-candidate-id" name="id" value="" />
+
+        <div id="edit-badge" class="edit-mode-badge hidden">
+          ✏️ Mode ÉDITION actif <button type="button" onclick="resetForm()" class="cancel-edit">Annuler</button>
         </div>
 
-        <GlassCard title="➕ Ajouter un(e) Candidat(e)">
-          <form id="add-candidate-form" class="form-grid">
-            <div class="form-group">
-              <label>Nom & Prénom :</label>
-              <input type="text" id="candidate-name" placeholder="Ex: Marie KPOKPO" required />
-            </div>
+        <div class="form-group">
+          <label for="name">Nom complet du candidat :</label>
+          <input type="text" id="name" name="name" placeholder="Ex: Marie Dupont" required />
+        </div>
 
-            <div class="form-group">
-              <label>Catégorie :</label>
-              <select id="candidate-category" required>
-                <option value="Roi du Bal">Roi du Bal</option>
-                <option value="Reine du Bal">Reine du Bal</option>
-                <option value="Le/La plus élégant(e)">Le/La plus élégant(e)</option>
-                <option value="Le duo de la soirée">Le duo de la soirée</option>
-              </select>
-            </div>
+        <div class="form-group">
+          <label for="category">Catégorie :</label>
+          <select id="category" name="category" required>
+            {categories.map(cat => <option value={cat}>{cat}</option>)}
+          </select>
+        </div>
 
-            <div class="form-group full-width">
-              <label>Photo du candidat (Optionnel) :</label>
-              <input type="file" id="candidate-file" accept="image/*" />
-              <small class="help-text">Sélectionnez une image depuis votre téléphone ou PC.</small>
-            </div>
+        <div class="form-group">
+          <label for="photo">Photo du candidat (optionnel) :</label>
+          <input type="file" id="photo" name="photo" accept="image/*" />
+        </div>
 
-            <div class="full-width">
-              <p id="candidate-msg" class="info-text" style="display: none;"></p>
-              <GoldButton text="Enregistrer le candidat" type="submit" id="submit-btn" />
-            </div>
-          </form>
-        </GlassCard>
+        <button type="submit" id="submit-btn" class="gold-action-btn">➕ Enregistrer le candidat</button>
+      </form>
+    </GlassCard>
+
+    <GlassCard title="📋 Liste des Candidats">
+      <div id="candidates-container" class="candidates-list">
+        <p class="loading-text">Chargement de la liste...</p>
       </div>
-    )}
+    </GlassCard>
   </div>
 </Layout>
 
 <script is:inline>
-  // Connexion Admin
-  document.getElementById('admin-login-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const password = document.getElementById('admin-password').value;
-    const errorEl = document.getElementById('login-error');
+  let isEditing = false;
 
-    const res = await fetch('/api/admin/unlock', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: password })
-    });
+  // --- CHARGER LA LISTE DES CANDIDATS ---
+  async function loadCandidates() {
+    const container = document.getElementById('candidates-container');
+    if (!container) return;
 
-    const data = await res.json();
-    if (res.ok && data.success) {
-      window.location.reload();
-    } else {
-      errorEl.textContent = data.error || 'Code incorrect.';
-      errorEl.style.display = 'block';
+    try {
+      const res = await fetch('/api/admin/candidates');
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        if (!data.candidates || data.candidates.length === 0) {
+          container.innerHTML = '<p class="empty-text">Aucun candidat enregistré pour le moment.</p>';
+          return;
+        }
+
+        container.innerHTML = data.candidates.map(c => `
+          <div class="candidate-item" id="candidate-card-${c.id}">
+            <div class="candidate-info">
+              ${c.photo_url 
+                ? `<img src="${c.photo_url}" class="avatar-img" alt="${c.name}" />`
+                : `<div class="avatar-placeholder">${c.name.charAt(0).toUpperCase()}</div>`
+              }
+              <div>
+                <h4 class="candidate-name">${c.name}</h4>
+                <span class="candidate-cat">${c.category}</span>
+              </div>
+            </div>
+            <div class="actions-group">
+              <button type="button" onclick="startEdit('${c.id}', \`${c.name.replace(/'/g, "\\'")}\`, \`${c.category.replace(/'/g, "\\'")}\`)" class="btn-edit" title="Éditer">✏️</button>
+              <button type="button" onclick="deleteCandidate('${c.id}', \`${c.name.replace(/'/g, "\\'")}\`)" class="btn-delete" title="Supprimer">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        container.innerHTML = '<p class="error-text">Erreur de chargement des données.</p>';
+      }
+    } catch (e) {
+      container.innerHTML = '<p class="error-text">Impossible de contacter le serveur.</p>';
     }
-  });
+  }
 
-  // Déconnexion Admin
-  document.getElementById('logout-btn')?.addEventListener('click', async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    window.location.reload();
-  });
+  // --- PRÉPARER LE FORMULAIRE EN MODE ÉDITION ---
+  window.startEdit = (id, name, category) => {
+    isEditing = true;
+    document.getElementById('edit-candidate-id').value = id;
+    document.getElementById('name').value = name;
+    document.getElementById('category').value = category;
+    document.getElementById('submit-btn').innerHTML = '💾 Enregistrer les modifications';
+    document.getElementById('edit-badge').classList.remove('hidden');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  // Ajout de candidat
-  document.getElementById('add-candidate-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const msgEl = document.getElementById('candidate-msg');
-    const fileInput = document.getElementById('candidate-file');
-    const submitBtn = document.getElementById('submit-btn');
+  // --- RÉINITIALISER LE FORMULAIRE EN MODE AJOUT ---
+  window.resetForm = () => {
+    isEditing = false;
+    document.getElementById('candidate-form').reset();
+    document.getElementById('edit-candidate-id').value = '';
+    document.getElementById('submit-btn').innerHTML = '➕ Enregistrer le candidat';
+    document.getElementById('edit-badge').classList.add('hidden');
+  };
 
-    msgEl.style.display = 'none';
-    if (submitBtn) submitBtn.disabled = true;
+  // --- SUPPRIMER UN CANDIDAT ---
+  window.deleteCandidate = async (id, name) => {
+    if (!confirm(`Voulez-vous vraiment supprimer "${name}" ?`)) return;
 
-    const formData = new FormData();
-    formData.append('name', document.getElementById('candidate-name').value);
-    formData.append('category', document.getElementById('candidate-category').value);
-
-    if (fileInput.files && fileInput.files[0]) {
-      formData.append('photo', fileInput.files[0]);
+    try {
+      const res = await fetch(`/api/admin/candidates?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadCandidates();
+      } else {
+        alert("Erreur lors de la suppression.");
+      }
+    } catch (e) {
+      alert("Erreur de connexion.");
     }
+  };
+
+  // --- SOUMISSION DU FORMULAIRE (AJOUT OU MODIFICATION) ---
+  document.getElementById('candidate-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const method = isEditing ? 'PUT' : 'POST';
 
     try {
       const res = await fetch('/api/admin/candidates', {
-        method: 'POST',
+        method: method,
         body: formData
       });
 
-      let data = {};
-      try {
-        data = await res.json();
-      } catch (err) {
-        data = { error: `Erreur HTTP ${res.status}: API non trouvée ou indisponible.` };
-      }
+      const data = await res.json();
 
       if (res.ok && data.success) {
-        msgEl.textContent = "✅ Candidat ajouté avec succès !";
-        msgEl.style.color = "#4ade80";
-        msgEl.style.display = "block";
-        e.target.reset();
+        resetForm();
+        loadCandidates();
       } else {
-        msgEl.textContent = "❌ " + (data.error || "Erreur lors de l'ajout");
-        msgEl.style.color = "#ef4444";
-        msgEl.style.display = "block";
+        alert(data.error || "Une erreur est survenue.");
       }
     } catch (err) {
-      msgEl.textContent = "Erreur réseau: " + err.message;
-      msgEl.style.color = "#ef4444";
-      msgEl.style.display = "block";
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
+      alert("Erreur lors de la connexion au serveur.");
     }
   });
+
+  // Charger au démarrage
+  document.addEventListener('DOMContentLoaded', loadCandidates);
 </script>
 
 <style>
-  .admin-container { max-width: 800px; margin: 3rem auto; padding: 0 1rem; }
-  .login-box { max-width: 420px; margin: 0 auto; text-align: center; }
-  .mask-icon { font-size: 3rem; }
-  h1 { color: #fff; font-size: 1.8rem; margin-bottom: 0.5rem; }
-  .subtitle { color: #a1a1aa; margin-bottom: 2rem; }
-
-  .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-  .header-btns { display: flex; gap: 1rem; }
-
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .full-width { grid-column: span 2; }
-  
-  .form-group label { display: block; margin-bottom: 0.5rem; color: #d4d4d8; font-size: 0.9rem; }
-  .form-group input, .form-group select {
-    width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(0,0,0,0.4); color: #fff; box-sizing: border-box;
+  .admin-header {
+    text-align: center;
+    padding: 2rem 1rem 1rem 1rem;
   }
 
-  .help-text { color: #a1a1aa; font-size: 0.8rem; margin-top: 0.3rem; display: block; }
-  .btn-outline { color: var(--gold, #D4AF37); border: 1px solid var(--gold, #D4AF37); padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; }
-  .btn-danger { background: #ef4444; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-  .error-text { color: #ef4444; margin-top: 1rem; }
-  .info-text { margin-bottom: 1rem; font-weight: 600; text-align: center; }
+  .admin-mask-icon {
+    width: 120px;
+    height: auto;
+    margin: 0 auto 1rem auto;
+    display: block;
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .admin-header h1 {
+    font-size: 2rem;
+    color: #fff;
+    margin-bottom: 0.2rem;
+  }
+
+  .subtitle {
+    color: #a1a1aa;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    color: var(--gold, #D4AF37);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: bold;
+  }
+
+  .admin-grid {
+    max-width: 1000px;
+    margin: 2rem auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 0 1rem;
+  }
+
+  @media (min-width: 850px) {
+    .admin-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* --- FORMULAIRE --- */
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    color: #d4d4d8;
+    font-weight: 500;
+  }
+
+  input[type="text"], select, input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #fff;
+    box-sizing: border-box;
+  }
+
+  select option {
+    background: #18181b;
+    color: #fff;
+  }
+
+  .gold-action-btn {
+    background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);
+    color: #000;
+    font-weight: bold;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+
+  .gold-action-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+  }
+
+  .edit-mode-badge {
+    background: rgba(212, 175, 55, 0.2);
+    border: 1px solid var(--gold, #D4AF37);
+    color: var(--gold, #D4AF37);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .cancel-edit {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: underline;
+  }
+
+  /* --- LISTE DES CANDIDATS --- */
+  .candidates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+
+  .candidate-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+
+  .candidate-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--gold, #D4AF37);
+  }
+
+  .avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #D4AF37, #856100);
+    color: #000;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .candidate-name {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #fff;
+  }
+
+  .candidate-cat {
+    font-size: 0.78rem;
+    color: var(--gold, #D4AF37);
+  }
+
+  .actions-group {
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn-edit, .btn-delete {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .btn-edit:hover { background: rgba(59, 130, 246, 0.3); }
+  .btn-delete:hover { background: rgba(239, 68, 68, 0.3); }
+
+  .loading-text, .empty-text, .error-text {
+    text-align: center;
+    color: #a1a1aa;
+    font-size: 0.9rem;
+    padding: 1rem;
+  }
+
+  .hidden { display: none !important; }
 </style>
