@@ -1,39 +1,23 @@
-export const requireAdminSession = (context) => {
-  // Supporte à la fois context ({ request, cookies }) et Astro (Astro.request, Astro.cookies)
-  const request = context?.request || context;
-  const cookies = context?.cookies;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // Change le mot de passe ici ou dans les variables d'environnement Vercel
 
-  // 1. Vérification via l'API cookies native d'Astro
-  if (cookies && typeof cookies.get === 'function') {
-    const session = cookies.get('admin_session');
-    if (session && session.value === 'authenticated') {
-      return true;
-    }
-  }
+export function checkPassword(password) {
+  return password === ADMIN_PASSWORD;
+}
 
-  // 2. Vérification de secours via l'en-tête HTTP raw
-  const cookieHeader = (request?.headers && typeof request.headers.get === 'function')
-    ? (request.headers.get('cookie') || '')
-    : '';
+export function isAdminAuthenticated(context) {
+  const cookieHeader = context.request.headers.get('cookie') || '';
+  return cookieHeader.includes('admin_session=true');
+}
 
-  return cookieHeader.includes('admin_session=authenticated');
-};
-
-export const requireAdmin = (context) => {
-  const ok = requireAdminSession(context);
-
-  if (!ok) {
+export function requireAdmin(context) {
+  if (!isAdminAuthenticated(context)) {
     return {
       ok: false,
-      response: new Response(
-        JSON.stringify({ error: 'Non autorisé - Session invalide' }),
-        {
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      )
+      response: new Response(JSON.stringify({ success: false, error: 'Non autorisé. Veuillez vous connecter.' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
     };
   }
-
   return { ok: true };
-};
+}
