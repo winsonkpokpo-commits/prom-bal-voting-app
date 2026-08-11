@@ -28,7 +28,7 @@ const categoriesJson = JSON.stringify(categories);
 
 <Layout title="Voter">
 	<h1>Bal Masqué - Élections</h1>
-	
+
 	<GlassCard>
 		{votingClosed ? (
 			<div class="closed-message text-center">
@@ -39,59 +39,43 @@ const categoriesJson = JSON.stringify(categories);
 			<form id="voting-form">
 				<div id="error-box" class="error-msg" style="display: none;"></div>
 				<div id="success-box" class="success-msg" style="display: none;"></div>
-				
+
 				<div class="form-section">
 					<h3>Qui êtes-vous ?</h3>
 					<p>Sélectionnez votre nom pour voter. Votre choix restera anonyme, mais cela nous permet d'éviter les votes multiples.</p>
-					<select id="voter-select" required>
-						<option value="" disabled selected>-- Sélectionnez votre nom --</option>
-						{students.map((s) => (
-							<option value={s.id}>{s.name}</option>
-						))}
-					</select>
+					<input type="text" class="picker-search" data-search-for="voter-picker" placeholder="Rechercher votre nom..." />
+					<div id="voter-picker" class="candidate-grid"></div>
 				</div>
-				
+
 				<hr class="divider" />
-				
+
 				<div class="form-section">
 					<h3>Couronne Royale</h3>
-					
-					<label for="king-select">Roi du Bal</label>
-					<select id="king-select">
-						<option value="" selected>-- Vote Blanc --</option>
-						{students.map((s) => (
-							<option value={s.name}>{s.name}</option>
-						))}
-					</select>
-					
-					<label for="queen-select">Reine du Bal</label>
-					<select id="queen-select">
-						<option value="" selected>-- Vote Blanc --</option>
-						{students.map((s) => (
-							<option value={s.name}>{s.name}</option>
-						))}
-					</select>
+
+					<label>Roi du Bal</label>
+					<input type="text" class="picker-search" data-search-for="king-picker" placeholder="Rechercher..." />
+					<div id="king-picker" class="candidate-grid"></div>
+
+					<label style="margin-top: 1.5rem;">Reine du Bal</label>
+					<input type="text" class="picker-search" data-search-for="queen-picker" placeholder="Rechercher..." />
+					<div id="queen-picker" class="candidate-grid"></div>
 				</div>
-				
+
 				{categories.length > 0 && <hr class="divider" />}
-				
+
 				<div class="form-section">
 					{categories.length > 0 && <h3>Catégories Spéciales</h3>}
 					<div id="categories-container">
 						{categories.map((c) => (
 							<div class="category-field">
-								<label for={`cat-${c.id}`}>{c.name}</label>
-								<select id={`cat-${c.id}`} data-cat-id={c.id}>
-									<option value="" selected>-- Vote Blanc --</option>
-									{students.map((s) => (
-										<option value={s.name}>{s.name}</option>
-									))}
-								</select>
+								<label>{c.name}</label>
+								<input type="text" class="picker-search" data-search-for={`cat-picker-${c.id}`} placeholder="Rechercher..." />
+								<div id={`cat-picker-${c.id}`} class="candidate-grid" data-category-id={c.id}></div>
 							</div>
 						))}
 					</div>
 				</div>
-				
+
 				<div class="text-center" style="margin-top: 2rem;">
 					<button type="submit" id="submit-btn">Déposer mon vote</button>
 				</div>
@@ -99,76 +83,141 @@ const categoriesJson = JSON.stringify(categories);
 		)}
 	</GlassCard>
 </Layout>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script is:inline>
-	let sessionToken = sessionStorage.getItem('admin_token') || null;
-	...
+
 <script is:inline define:vars={{ studentsJson, categoriesJson }}>
 	document.addEventListener('DOMContentLoaded', () => {
 		const form = document.getElementById('voting-form');
 		if (!form) return;
-		
+
 		const submitBtn = document.getElementById('submit-btn');
 		const errorBox = document.getElementById('error-box');
 		const successBox = document.getElementById('success-box');
-		
+
 		const students = JSON.parse(studentsJson);
 		const categories = JSON.parse(categoriesJson);
-		
+
+		const getInitials = (name) =>
+			(name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+
+		const renderAvatar = (student) => {
+			if (student.photo_url) {
+				return `<img src="${student.photo_url}" alt="${student.name}" class="avatar-img" loading="lazy" />`;
+			}
+			return `<div class="avatar-fallback">${getInitials(student.name)}</div>`;
+		};
+
+		// Grille de cartes-photo cliquables avec recherche.
+		// allowBlank ajoute une carte "Vote Blanc" (abstention volontaire).
+		const createPicker = (gridId, searchSelector, { allowBlank = false } = {}) => {
+			const grid = document.getElementById(gridId);
+			const searchInput = document.querySelector(searchSelector);
+			let selectedId = '';
+
+			const render = (filterText = '') => {
+				const filtered = students.filter((s) => s.name.toLowerCase().includes(filterText.toLowerCase()));
+				grid.innerHTML = '';
+
+				if (allowBlank) {
+					const blankCard = document.createElement('button');
+					blankCard.type = 'button';
+					blankCard.className = 'candidate-card blank-card' + (selectedId === '' ? ' selected' : '');
+					blankCard.innerHTML = `<div class="avatar-fallback blank">—</div><span>Vote Blanc</span>`;
+					blankCard.addEventListener('click', () => {
+						selectedId = '';
+						render(searchInput ? searchInput.value : '');
+					});
+					grid.appendChild(blankCard);
+				}
+
+				filtered.forEach((s) => {
+					const card = document.createElement('button');
+					card.type = 'button';
+					card.className = 'candidate-card' + (selectedId === s.id ? ' selected' : '');
+					card.innerHTML = `${renderAvatar(s)}<span>${s.name}</span>`;
+					card.addEventListener('click', () => {
+						selectedId = s.id;
+						render(searchInput ? searchInput.value : '');
+					});
+					grid.appendChild(card);
+				});
+
+				if (filtered.length === 0 && !allowBlank) {
+					grid.innerHTML = '<p class="empty-hint">Aucun résultat.</p>';
+				}
+			};
+
+			searchInput?.addEventListener('input', (e) => render(e.target.value));
+			render();
+
+			return { getSelected: () => selectedId };
+		};
+
+		const voterPicker = createPicker('voter-picker', '[data-search-for="voter-picker"]');
+		const kingPicker = createPicker('king-picker', '[data-search-for="king-picker"]', { allowBlank: true });
+		const queenPicker = createPicker('queen-picker', '[data-search-for="queen-picker"]', { allowBlank: true });
+
+		const categoryPickers = {};
+		categories.forEach((c) => {
+			categoryPickers[c.id] = createPicker(
+				`cat-picker-${c.id}`,
+				`[data-search-for="cat-picker-${c.id}"]`,
+				{ allowBlank: true }
+			);
+		});
+
 		form.addEventListener('submit', async (e) => {
 			e.preventDefault();
-			
-			// Réinitialisation des messages
+
 			errorBox.style.display = 'none';
 			successBox.style.display = 'none';
-			
-			const voterId = document.getElementById('voter-select').value;
+
+			const voterId = voterPicker.getSelected();
 			if (!voterId) {
-				errorBox.textContent = "Veuillez sélectionner votre nom.";
+				errorBox.textContent = 'Veuillez sélectionner votre nom.';
 				errorBox.style.display = 'block';
+				window.scrollTo({ top: 0, behavior: 'smooth' });
 				return;
 			}
-			
-			const voterInfo = students.find(s => s.id === voterId);
-			const king = document.getElementById('king-select').value;
-			const queen = document.getElementById('queen-select').value;
-			
+
+			const voterInfo = students.find((s) => s.id === voterId);
+
 			const catVotes = {};
-			categories.forEach(c => {
-				const val = document.getElementById(`cat-${c.id}`).value;
+			categories.forEach((c) => {
+				const val = categoryPickers[c.id].getSelected();
 				if (val) catVotes[c.id] = val;
 			});
-			
+
 			const payload = {
 				voter_slug: voterId,
 				voter_name: voterInfo.name,
-				king: king,
-				queen: queen,
+				king: kingPicker.getSelected(),
+				queen: queenPicker.getSelected(),
 				categories: catVotes
 			};
-			
+
 			submitBtn.disabled = true;
 			submitBtn.innerHTML = '<span class="loader"></span> Envoi...';
-			
+
 			try {
 				const res = await fetch('/api/vote', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload)
 				});
-				
+
 				const data = await res.json();
-				
+
 				if (!res.ok) {
-					throw new Error(data.error || "Erreur lors du vote");
+					throw new Error(data.error || 'Erreur lors du vote');
 				}
-				
-				successBox.textContent = "Votre vote a été enregistré avec succès ! Vous pouvez modifier votre vote tant que les urnes sont ouvertes.";
+
+				successBox.textContent = 'Votre vote a été enregistré avec succès ! Vous pouvez modifier votre vote tant que les urnes sont ouvertes.';
 				successBox.style.display = 'block';
 				window.scrollTo({ top: 0, behavior: 'smooth' });
 			} catch (err) {
-				errorBox.textContent = err.message || "Une erreur réseau est survenue.";
+				errorBox.textContent = err.message || 'Une erreur réseau est survenue.';
 				errorBox.style.display = 'block';
+				window.scrollTo({ top: 0, behavior: 'smooth' });
 			} finally {
 				submitBtn.disabled = false;
 				submitBtn.textContent = 'Déposer mon vote';
@@ -180,33 +229,124 @@ const categoriesJson = JSON.stringify(categories);
 <style>
 	.text-center { text-align: center; }
 	.closed-message h2 { font-size: 2rem; margin-bottom: 1rem; }
-	
+
 	.form-section {
 		margin-bottom: 1.5rem;
 	}
-	
+
 	.form-section h3 {
 		font-size: 1.5rem;
 		margin-bottom: 1rem;
 		border-bottom: 1px solid rgba(212, 175, 55, 0.2);
 		padding-bottom: 0.5rem;
 	}
-	
+
 	label {
 		display: block;
 		margin-bottom: 0.5rem;
 		font-weight: 500;
 		color: var(--color-gold-light);
 	}
-	
+
 	.divider {
 		border: 0;
 		height: 1px;
 		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
 		margin: 2rem 0;
 	}
-	
+
 	.category-field {
+		margin-bottom: 1.5rem;
+	}
+
+	.picker-search {
+		margin-bottom: 0.75rem;
+	}
+
+	.candidate-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+		gap: 0.75rem;
+		max-height: 320px;
+		overflow-y: auto;
+		padding: 0.75rem;
 		margin-bottom: 1rem;
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid rgba(212, 175, 55, 0.1);
+		border-radius: 8px;
+	}
+
+	.candidate-grid::-webkit-scrollbar { width: 6px; }
+	.candidate-grid::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+	.candidate-grid::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.5); border-radius: 10px; }
+
+	.candidate-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.4rem;
+		background: rgba(255, 255, 255, 0.04);
+		border: 2px solid transparent;
+		border-radius: 8px;
+		padding: 0.6rem 0.4rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-align: center;
+		box-shadow: none;
+	}
+
+	.candidate-card:hover {
+		background: rgba(212, 175, 55, 0.1);
+		transform: translateY(-2px);
+		box-shadow: none;
+	}
+
+	.candidate-card.selected {
+		border-color: var(--color-gold);
+		background: rgba(212, 175, 55, 0.15);
+		box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+	}
+
+	.candidate-card span {
+		font-size: 0.8rem;
+		line-height: 1.2;
+		color: var(--color-text-main);
+		word-break: break-word;
+	}
+
+	.blank-card span { color: var(--color-text-muted); }
+
+	.avatar-img {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		object-fit: cover;
+		border: 2px solid rgba(212, 175, 55, 0.3);
+	}
+
+	.avatar-fallback {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(212, 175, 55, 0.15);
+		color: var(--color-gold);
+		font-weight: 700;
+		font-size: 1rem;
+		border: 2px solid rgba(212, 175, 55, 0.3);
+	}
+
+	.avatar-fallback.blank {
+		background: rgba(255, 255, 255, 0.05);
+		color: var(--color-text-muted);
+	}
+
+	.empty-hint {
+		grid-column: 1 / -1;
+		text-align: center;
+		color: var(--color-text-muted);
+		padding: 1rem;
 	}
 </style>
