@@ -27,7 +27,22 @@ const categoriesJson = JSON.stringify(categories);
 ---
 
 <Layout title="Voter">
-	<h1>Bal Masqué - Élections</h1>
+	<div class="hero">
+		<svg class="hero-mask" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+			<path d="M20,60 C20,25 55,10 90,14 C105,16 118,22 120,30 C122,22 135,16 150,14 C185,10 220,25 220,60 C220,85 195,95 175,85 C168,100 152,95 140,88 C133,94 127,94 120,90 C113,94 107,94 100,88 C88,95 72,100 65,85 C45,95 20,85 20,60 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+			<ellipse cx="70" cy="55" rx="26" ry="17" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(-8 70 55)"/>
+			<ellipse cx="170" cy="55" rx="26" ry="17" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(8 170 55)"/>
+			<path d="M205,35 C218,25 228,28 232,18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+		</svg>
+		<p class="eyebrow">Une soirée, un secret, un bal…</p>
+		<h1>Bal Masqué</h1>
+		<p class="hero-sub">Élections de la promotion</p>
+		<div class="ornament">
+			<span></span>
+			<svg viewBox="0 0 24 24" class="ornament-diamond" aria-hidden="true"><path d="M12 0 L24 12 L12 24 L0 12 Z" fill="currentColor"/></svg>
+			<span></span>
+		</div>
+	</div>
 
 	<GlassCard>
 		{votingClosed ? (
@@ -229,6 +244,75 @@ const categoriesJson = JSON.stringify(categories);
 <style>
 	.text-center { text-align: center; }
 	.closed-message h2 { font-size: 2rem; margin-bottom: 1rem; }
+
+	.hero {
+		position: relative;
+		text-align: center;
+		padding: 1rem 0 2rem;
+		overflow: hidden;
+	}
+
+	.hero-mask {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 480px;
+		max-width: 140%;
+		height: auto;
+		transform: translate(-50%, -55%);
+		color: var(--color-gold);
+		opacity: 0.07;
+		pointer-events: none;
+	}
+
+	.eyebrow {
+		font-family: var(--font-accent);
+		font-style: italic;
+		font-size: 1.2rem;
+		color: var(--color-gold-light);
+		letter-spacing: 0.03em;
+		margin: 0 0 0.25rem;
+		position: relative;
+	}
+
+	.hero h1 {
+		position: relative;
+		margin-bottom: 0.25rem;
+	}
+
+	.hero-sub {
+		font-family: var(--font-body);
+		font-size: 0.9rem;
+		text-transform: uppercase;
+		letter-spacing: 0.25em;
+		color: var(--color-text-muted);
+		margin: 0 0 1.5rem;
+		position: relative;
+	}
+
+	.ornament {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		position: relative;
+	}
+
+	.ornament span {
+		width: 60px;
+		height: 1px;
+		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.6));
+	}
+
+	.ornament span:last-child {
+		background: linear-gradient(90deg, rgba(212, 175, 55, 0.6), transparent);
+	}
+
+	.ornament-diamond {
+		width: 10px;
+		height: 10px;
+		color: var(--color-gold);
+	}
 
 	.form-section {
 		margin-bottom: 1.5rem;
