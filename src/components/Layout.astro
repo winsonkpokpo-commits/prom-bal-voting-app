@@ -1,305 +1,36 @@
 ---
 interface Props {
-	title: string;
+	class?: string;
 }
 
-const { title } = Astro.props;
+const { class: className = '' } = Astro.props;
 ---
 
-<!doctype html>
-<html lang="fr">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content="Vote pour le Bal de Promo" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<div class={`glass-card ${className}`}>
+	<slot />
+</div>
 
-		<!-- Google Fonts: Cinzel (titres), Cormorant Garamond (accent), Work Sans (texte) -->
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@1,400;1,500;1,600&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-		<title>{title} | Bal Masqué</title>
-	</head>
-	<body>
-		<!-- Décor d'arrière-plan : lueurs et scintillements -->
-		<div class="background-glow"></div>
-		<div class="background-sparkle"></div>
-
-		<main>
-			<slot />
-		</main>
-
-		<footer class="site-footer" role="contentinfo">
-			<div class="site-credit">D'après l'idée originale de GNASSOUNOU Trésor, Réalisé par Winson KPOKPO</div>
-		</footer>
-
-		<!-- Entrée discrète vers l'administration : on "porte le masque" pour accéder aux coulisses -->
-		<a href="/admin" class="admin-entry" title="Administration" aria-label="Accéder à l'administration">
-			<svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-				<path d="M20,60 C20,25 55,10 90,14 C105,16 118,22 120,30 C122,22 135,16 150,14 C185,10 220,25 220,60 C220,85 195,95 175,85 C168,100 152,95 140,88 C133,94 127,94 120,90 C113,94 107,94 100,88 C88,95 72,100 65,85 C45,95 20,85 20,60 Z" fill="none" stroke="currentColor" stroke-width="7"/>
-				<ellipse cx="70" cy="55" rx="26" ry="17" fill="none" stroke="currentColor" stroke-width="7" transform="rotate(-8 70 55)"/>
-				<ellipse cx="170" cy="55" rx="26" ry="17" fill="none" stroke="currentColor" stroke-width="7" transform="rotate(8 170 55)"/>
-			</svg>
-		</a>
-	</body>
-</html>
-
-<style is:global>
-	:root {
-		--color-bg: #0d0221;
-		--color-velvet: #2a0e33;
-		--color-gold: #d4af37;
-		--color-gold-light: #f0d878;
-		--color-text-main: #f3ece0;
-		--color-text-muted: #b8a8c4;
-
-		--font-title: 'Cinzel', serif;
-		--font-accent: 'Cormorant Garamond', serif;
-		--font-body: 'Work Sans', sans-serif;
-	}
-
-	*, *::before, *::after {
-		box-sizing: border-box;
-	}
-
-	body {
-		margin: 0;
-		padding: 0;
-		background-color: var(--color-bg);
-		color: var(--color-text-main);
-		font-family: var(--font-body);
-		min-height: 100vh;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		overflow-x: hidden;
+<style>
+	.glass-card {
+		background: rgba(243, 236, 224, 0.035);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid rgba(212, 175, 55, 0.15);
+		border-radius: 12px;
+		padding: 2rem;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+		margin-bottom: 2rem;
 		position: relative;
+		overflow: hidden;
 	}
 
-	.background-glow {
-		position: fixed;
-		top: -20%;
-		left: -10%;
-		width: 60vw;
-		height: 60vw;
-		background: radial-gradient(circle, rgba(212, 175, 55, 0.13) 0%, rgba(13, 2, 33, 0) 70%);
-		border-radius: 50%;
-		z-index: -2;
-		pointer-events: none;
-	}
-
-	.background-glow::after {
+	.glass-card::before {
 		content: "";
 		position: absolute;
-		bottom: -120%;
-		right: -160%;
-		width: 70vw;
-		height: 70vw;
-		background: radial-gradient(circle, rgba(106, 27, 130, 0.28) 0%, rgba(13, 2, 33, 0) 70%);
-		border-radius: 50%;
-	}
-
-	.background-sparkle {
-		position: fixed;
-		inset: 0;
-		z-index: -1;
-		pointer-events: none;
-		background-image:
-			radial-gradient(1px 1px at 20% 30%, rgba(212, 175, 55, 0.55) 50%, transparent 100%),
-			radial-gradient(1px 1px at 60% 15%, rgba(243, 236, 224, 0.4) 50%, transparent 100%),
-			radial-gradient(1.5px 1.5px at 80% 60%, rgba(212, 175, 55, 0.4) 50%, transparent 100%),
-			radial-gradient(1px 1px at 35% 78%, rgba(243, 236, 224, 0.3) 50%, transparent 100%),
-			radial-gradient(1px 1px at 92% 85%, rgba(212, 175, 55, 0.35) 50%, transparent 100%),
-			radial-gradient(1.5px 1.5px at 8% 92%, rgba(243, 236, 224, 0.3) 50%, transparent 100%),
-			radial-gradient(1px 1px at 48% 48%, rgba(212, 175, 55, 0.3) 50%, transparent 100%);
-		background-repeat: no-repeat;
-		opacity: 0.8;
-	}
-
-	@media (prefers-reduced-motion: no-preference) {
-		.background-sparkle {
-			animation: twinkle 6s ease-in-out infinite alternate;
-		}
-	}
-
-	@keyframes twinkle {
-		from { opacity: 0.45; }
-		to { opacity: 0.9; }
-	}
-
-	main {
-		width: 100%;
-		max-width: 800px;
-		padding: 2rem 1.5rem;
-		z-index: 1;
-	}
-
-	footer.site-footer {
-		width: 100%;
-		max-width: 800px;
-		padding: 0.75rem 1.5rem 2.5rem;
-		margin-top: auto;
-		text-align: center;
-		color: var(--color-text-muted);
-		font-size: 0.85rem;
-		opacity: 0.95;
-		font-family: var(--font-body);
-	}
-
-	.site-credit {
-		color: var(--color-text-muted);
-		font-size: 0.85rem;
-		line-height: 1;
-	}
-
-	.admin-entry {
-		position: fixed;
-		bottom: 1.25rem;
-		right: 1.25rem;
-		width: 44px;
-		height: 44px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-		background: rgba(13, 2, 33, 0.65);
-		border: 1px solid rgba(212, 175, 55, 0.25);
-		color: var(--color-gold);
-		opacity: 0.55;
-		backdrop-filter: blur(6px);
-		-webkit-backdrop-filter: blur(6px);
-		transition: opacity 0.25s ease, transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-		z-index: 20;
-		text-decoration: none;
-	}
-	.admin-entry svg { width: 22px; height: 22px; }
-	.admin-entry:hover {
-		opacity: 1;
-		transform: scale(1.08);
-		border-color: var(--color-gold);
-		box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
-	}
-	.admin-entry:focus-visible {
-		opacity: 1;
-		outline: 2px solid var(--color-gold-light);
-		outline-offset: 2px;
-	}
-
-	h1, h2, h3, h4, h5, h6 {
-		font-family: var(--font-title);
-		font-weight: 600;
-		color: var(--color-gold);
-		margin-top: 0;
-	}
-
-	h1 {
-		font-size: 2.5rem;
-		text-align: center;
-		margin-bottom: 2rem;
-		letter-spacing: 0.05em;
-		text-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
-	}
-
-	p {
-		line-height: 1.6;
-		color: var(--color-text-muted);
-	}
-
-	/* Formulaires et Boutons globaux */
-	button, .btn {
-		background: linear-gradient(135deg, rgba(212, 175, 55, 0.8) 0%, rgba(184, 150, 40, 0.8) 100%);
-		color: #1a0a1f;
-		border: 1px solid var(--color-gold-light);
-		padding: 0.75rem 1.5rem;
-		font-family: var(--font-body);
-		font-weight: 600;
-		font-size: 1rem;
-		border-radius: 4px;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		text-transform: uppercase;
-		letter-spacing: 1px;
-		display: inline-block;
-		text-align: center;
-		text-decoration: none;
-		box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
-	}
-
-	button:hover, .btn:hover {
-		background: linear-gradient(135deg, rgba(230, 197, 93, 0.9) 0%, rgba(212, 175, 55, 0.9) 100%);
-		box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
-		transform: translateY(-2px);
-	}
-
-	button:focus-visible, .btn:focus-visible {
-		outline: 2px solid var(--color-gold-light);
-		outline-offset: 2px;
-	}
-
-	button:disabled {
-		background: #2a1f30;
-		border-color: #4a3a52;
-		color: #8a7a92;
-		cursor: not-allowed;
-		box-shadow: none;
-		transform: none;
-	}
-
-	input, select {
-		width: 100%;
-		padding: 0.75rem 1rem;
-		background: rgba(243, 236, 224, 0.04);
-		border: 1px solid rgba(212, 175, 55, 0.3);
-		border-radius: 4px;
-		color: var(--color-text-main);
-		font-family: var(--font-body);
-		font-size: 1rem;
-		transition: border-color 0.3s, box-shadow 0.3s;
-		margin-bottom: 1rem;
-	}
-
-	input:focus, select:focus {
-		outline: none;
-		border-color: var(--color-gold);
-		box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
-		background: rgba(243, 236, 224, 0.08);
-	}
-
-	select option {
-		background-color: var(--color-bg);
-		color: var(--color-text-main);
-	}
-
-	.error-msg {
-		color: #ff8f8f;
-		background: rgba(255, 107, 107, 0.1);
-		border-left: 4px solid #ff6b6b;
-		padding: 1rem;
-		margin-bottom: 1.5rem;
-		border-radius: 0 4px 4px 0;
-	}
-
-	.success-msg {
-		color: #7fe89a;
-		background: rgba(81, 207, 102, 0.1);
-		border-left: 4px solid #51cf66;
-		padding: 1rem;
-		margin-bottom: 1.5rem;
-		border-radius: 0 4px 4px 0;
-	}
-
-	.loader {
-		display: inline-block;
-		width: 20px;
-		height: 20px;
-		border: 3px solid rgba(0,0,0,0.3);
-		border-radius: 50%;
-		border-top-color: #1a0a1f;
-		animation: spin 1s ease-in-out infinite;
-	}
-
-	@keyframes spin {
-		to { transform: rotate(360deg); }
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
 	}
 </style>
