@@ -1,7 +1,18 @@
 import crypto from 'node:crypto';
 
-const ADMIN_SESSION_TTL_MS = 1000 * 60 * 60 * 8;
-const adminSessions = new Map();
+const ADMIN_SESSION_TTL_MS = 1000 * 60 * 60 * 8; // 8 heures
+
+const getSigningSecret = () => {
+  const secret = import.meta.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET_KEY;
+  if (!secret) throw new Error('ADMIN_SECRET_KEY manquant');
+  return secret;
+};
+
+const base64url = (input) => Buffer.from(input).toString('base64url');
+const fromBase64url = (input) => Buffer.from(input, 'base64url').toString('utf8');
+
+const sign = (payload) =>
+  crypto.createHmac('sha256', getSigningSecret()).update(payload).digest('base64url');
 
 const parseCookies = (cookieHeader = '') => {
   return cookieHeader
@@ -18,10 +29,14 @@ const parseCookies = (cookieHeader = '') => {
     }, {});
 };
 
+// Jeton signé et SANS ÉTAT : contient sa propre expiration + une signature HMAC.
+// Aucune mémoire serveur requise -> fiable avec les fonctions serverless de Vercel,
+// qui peuvent traiter chaque requête sur une instance différente.
 export const createAdminSession = () => {
-  const token = crypto.randomBytes(24).toString('hex');
-  adminSessions.set(token, { expiresAt: Date.now() + ADMIN_SESSION_TTL_MS });
-  return token;
+  const payload = JSON.stringify({ exp: Date.now() + ADMIN_SESSION_TTL_MS });
+  const encodedPayload = base64url(payload);
+  const signature = sign(encodedPayload);
+  return `${encodedPayload}.${signature}`;
 };
 
 export const buildAdminSessionCookie = (token) => {
@@ -29,22 +44,31 @@ export const buildAdminSessionCookie = (token) => {
   return `admin_session=${token}; HttpOnly; Path=/; SameSite=Strict${secure}; Max-Age=${Math.floor(ADMIN_SESSION_TTL_MS / 1000)}`;
 };
 
+const isValidToken = (token) => {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return false;
+
+  const [encodedPayload, signature] = token.split('.');
+  if (!encodedPayload || !signature) return false;
+
+  const expectedSignature = sign(encodedPayload);
+  const provided = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+  if (provided.length !== expected.length) return false;
+  if (!crypto.timingSafeEqual(provided, expected)) return false;
+
+  try {
+    const { exp } = JSON.parse(fromBase64url(encodedPayload));
+    return typeof exp === 'number' && Date.now() < exp;
+  } catch {
+    return false;
+  }
+};
+
 export const requireAdminSession = (request, bodyToken = null) => {
   const cookieHeader = request.headers.get('cookie') || '';
   const cookieToken = parseCookies(cookieHeader).admin_session;
   const token = cookieToken || bodyToken || null;
-
-  if (!token) return null;
-
-  const session = adminSessions.get(token);
-  if (!session) return null;
-
-  if (Date.now() > session.expiresAt) {
-    adminSessions.delete(token);
-    return null;
-  }
-
-  return token;
+  return isValidToken(token) ? token : null;
 };
 
 export const requireAdmin = (request, bodyToken = null) => {
