@@ -2,11 +2,17 @@
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
 import GoldButton from '../../components/GoldButton.astro';
+import { requireAdminSession } from '../../lib/admin-auth';
+
+// Si déjà authentifié, rediriger directement vers le panneau d'administration
+if (requireAdminSession(Astro.request, Astro.cookies)) {
+  return Astro.redirect('/admin/results');
+}
 ---
 
 <Layout title="Administration - CPEG Ste Bakhita">
   <div class="admin-login-container">
-    <div class="mask-icon">🎭</div>
+    <div class="mask-icon">✨</div>
     <h1>CPEG Ste Bakhita</h1>
     <h2>Espace Réservé</h2>
 
@@ -42,7 +48,7 @@ import GoldButton from '../../components/GoldButton.astro';
     const submitBtn = e.target.querySelector('button[type="submit"]');
 
     errorEl.style.display = 'none';
-    submitBtn.disabled = true;
+    if (submitBtn) submitBtn.disabled = true;
 
     try {
       const res = await fetch('/api/admin/unlock', {
@@ -54,16 +60,17 @@ import GoldButton from '../../components/GoldButton.astro';
       const data = await res.json();
 
       if (res.ok && data.success) {
+        // Redirection vers le tableau de bord des résultats
         window.location.href = '/admin/results';
       } else {
         errorEl.textContent = data.error || 'Code incorrect.';
         errorEl.style.display = 'block';
-        submitBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
       }
     } catch (err) {
       errorEl.textContent = 'Erreur de connexion au serveur.';
       errorEl.style.display = 'block';
-      submitBtn.disabled = false;
+      if (submitBtn) submitBtn.disabled = false;
     }
   });
 </script>
@@ -88,7 +95,7 @@ import GoldButton from '../../components/GoldButton.astro';
 
   h2 {
     font-size: 1.1rem;
-    color: var(--gold);
+    color: var(--gold, #D4AF37);
     margin-bottom: 2rem;
   }
 
@@ -123,6 +130,6 @@ import GoldButton from '../../components/GoldButton.astro';
   }
 
   .back-link a:hover {
-    color: var(--gold);
+    color: var(--gold, #D4AF37);
   }
 </style>
