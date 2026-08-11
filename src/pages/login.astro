@@ -1,0 +1,39 @@
+---
+import Layout from '../components/Layout.astro';
+import GlassCard from '../components/GlassCard.astro';
+---
+
+<Layout title="Espace VIP - Bal de Promo">
+  <div class="login-wrapper">
+    <GlassCard title="🤫 Zone Restreinte">
+      <p style="text-align: center; color: #a1a1aa; margin-bottom: 2rem; font-size: 0.9rem;">
+        Cet espace est réservé au comité d'organisation.
+      </p>
+
+      <form action="/api/admin/login" method="POST">
+        <input 
+          type="password" 
+          name="password" 
+          placeholder="Mot de passe VIP..." 
+          required 
+        />
+        <button type="submit">Déverrouiller</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="/" style="color: var(--gold); text-decoration: none; font-size: 0.8rem;">
+          ← Retour aux votes
+        </a>
+      </div>
+    </GlassCard>
+  </div>
+</Layout>
+
+<style>
+  .login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+  }
+</style>
