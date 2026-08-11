@@ -3,7 +3,6 @@ import Layout from '../components/Layout.astro';
 import GlassCard from '../components/GlassCard.astro';
 import GoldButton from '../components/GoldButton.astro';
 
-// Tu pourras remplacer ces catégories par celles de ta base de données plus tard
 const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
 ---
 
@@ -30,13 +29,12 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
   </div>
 
   <div class="footer-admin">
-    <a href="/login" class="admin-link">🔒 Administration</a>
+    <a href="/admin" class="admin-link">🔒 Administration</a>
   </div>
 
 </Layout>
 
 <style>
-  /* Style spécifique au thème Bal Masqué */
   .hero-section {
     text-align: center;
     padding: 2.5rem 1rem 1.5rem 1rem;
