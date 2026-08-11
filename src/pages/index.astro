@@ -3,63 +3,107 @@ import Layout from '../components/Layout.astro';
 import GlassCard from '../components/GlassCard.astro';
 import GoldButton from '../components/GoldButton.astro';
 
-// Liste temporaire pour l'affichage (à lier à ton backend plus tard)
-const categories = ["Roi du bal", "Reine du bal", "Le mieux habillé"]; 
+// Tu pourras remplacer ces catégories par celles de ta base de données plus tard
+const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
 ---
 
-<Layout title="Vote - Bal de Promo">
-  <div class="header">
-    <h1>Bal de Promo 2026</h1>
-    <p>La Nuit des Étoiles - Votez pour vos favoris</p>
+<Layout title="Bal Masqué - CPEG Ste Bakhita">
+  
+  <div class="hero-section">
+    <div class="mask-icon">🎭</div>
+    <span class="school-badge">CPEG Ste Bakhita</span>
+    <h1>Le Bal Masqué 2026</h1>
+    <p class="subtitle">L'anonymat tombe le temps d'une nuit... Élisez les rois et reines de la soirée.</p>
   </div>
 
-  {categories.map((category) => (
-    <GlassCard title={category}>
-      <form action="/api/vote" method="POST">
-        <input type="hidden" name="category" value={category} />
-        <label style="display:block; margin-bottom: 8px; color: #aaa;">Sélectionnez un candidat :</label>
-        <input type="text" name="voted_for" placeholder="Nom complet du candidat..." required />
-        <GoldButton text="Voter" type="submit" />
-      </form>
-    </GlassCard>
-  ))}
-
-  <div class="admin-link-container">
-    <a href="/admin" class="admin-link">
-      <span class="icon">🔒</span> Accès Administrateur
-    </a>
+  <div class="voting-container">
+    {categories.map((category) => (
+      <GlassCard title={category}>
+        <form action="/api/vote" method="POST">
+          <input type="hidden" name="category" value={category} />
+          <label class="input-label">Votre favori(te) :</label>
+          <input type="text" name="voted_for" placeholder="Rechercher un nom..." required />
+          <GoldButton text="Valider mon vote" type="submit" />
+        </form>
+      </GlassCard>
+    ))}
   </div>
+
+  <div class="footer-admin">
+    <a href="/login" class="admin-link">🔒 Administration</a>
+  </div>
+
 </Layout>
 
 <style>
-  .header {
+  /* Style spécifique au thème Bal Masqué */
+  .hero-section {
     text-align: center;
-    margin-bottom: 3rem;
-  }
-  
-  .header p {
-    color: #a0a0a0;
-    font-style: italic;
-    font-size: 1.2rem;
+    padding: 2.5rem 1rem 1.5rem 1rem;
+    position: relative;
   }
 
-  .admin-link-container {
+  .mask-icon {
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .school-badge {
+    display: inline-block;
+    background: rgba(245, 208, 97, 0.1);
+    color: var(--gold);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid rgba(245, 208, 97, 0.3);
+    margin-bottom: 1rem;
+  }
+
+  .hero-section h1 {
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, #fff 30%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: #a1a1aa;
+    font-size: 0.95rem;
+    max-width: 400px;
+    margin: 0 auto 2rem auto;
+    line-height: 1.5;
+  }
+
+  .input-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #d4d4d8;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .footer-admin {
     text-align: center;
     margin-top: 4rem;
+    padding-bottom: 2rem;
   }
 
   .admin-link {
-    color: rgba(212, 175, 55, 0.5);
+    color: rgba(255, 255, 255, 0.3);
     text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 0.85rem;
+    transition: color 0.3s ease;
   }
-<a href="/login" style="display: block; text-align: center; opacity: 0.2; font-size: 12px; text-decoration: none; color: white; margin-top: 40px;">
-  π
-</a>
 
   .admin-link:hover {
     color: var(--gold);
