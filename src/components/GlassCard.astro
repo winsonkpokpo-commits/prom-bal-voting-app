@@ -1,36 +1,38 @@
 ---
 interface Props {
-	class?: string;
+  title?: string;
 }
 
-const { class: className = '' } = Astro.props;
+const { title } = Astro.props;
 ---
 
-<div class={`glass-card ${className}`}>
-	<slot />
+<div class="glass-card">
+  {title && <h3 class="card-title">{title}</h3>}
+  <slot />
 </div>
 
 <style>
-	.glass-card {
-		background: rgba(255, 255, 255, 0.03);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-		border: 1px solid rgba(212, 175, 55, 0.15);
-		border-radius: 12px;
-		padding: 2rem;
-		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-		margin-bottom: 2rem;
-		position: relative;
-		overflow: hidden;
-	}
+  .glass-card {
+    background: rgba(20, 20, 20, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.15);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
 
-	.glass-card::before {
-		content: "";
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
-	}
+  .glass-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(212, 175, 55, 0.4);
+  }
+
+  .card-title {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    padding-bottom: 0.8rem;
+  }
 </style>
