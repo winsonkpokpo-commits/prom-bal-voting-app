@@ -6,10 +6,23 @@ import { supabase } from '../lib/supabase';
 
 const { data: categoriesData } = await supabase
   .from('categories')
-  .select('name')
+  .select('id, name')
   .order('position', { ascending: true });
 
-const categories = (categoriesData || []).map(c => c.name);
+const { data: participantsData } = await supabase
+  .from('participants')
+  .select('id, name, photo_url')
+  .order('name', { ascending: true });
+
+const { data: configData } = await supabase
+  .from('config')
+  .select('voting_closed')
+  .eq('id', 1)
+  .single();
+
+const categories = categoriesData || [];
+const participants = participantsData || [];
+const votingClosed = configData?.voting_closed || false;
 ---
 
 <Layout title="Bal Masqué 2026 - CPEG Ste Bakhita">
@@ -27,40 +40,30 @@ const categories = (categoriesData || []).map(c => c.name);
           <stop offset="70%" stop-color="#AA7C11" />
           <stop offset="100%" stop-color="#FFD700" />
         </linearGradient>
-
         <radialGradient id="maskGlow" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.35"/>
           <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
         </radialGradient>
-
         <filter id="shadow3D" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#D4AF37" flood-opacity="0.5"/>
         </filter>
       </defs>
-
       <ellipse cx="100" cy="55" rx="85" ry="45" fill="url(#maskGlow)" />
-
-      <path d="M 100,75 C 85,92 55,95 25,82 C 8,74 -2,55 3,38 C 8,18 32,18 65,30 C 82,36 94,44 100,48 C 106,44 118,36 135,30 C 168,18 192,18 197,38 C 202,55 192,74 175,82 C 145,95 115,92 100,75 Z" 
+      <path d="M 100,75 C 85,92 55,95 25,82 C 8,74 -2,55 3,38 C 8,18 32,18 65,30 C 82,36 94,44 100,48 C 106,44 118,36 135,30 C 168,18 192,18 197,38 C 202,55 192,74 175,82 C 145,95 115,92 100,75 Z"
             fill="#09090C" stroke="url(#goldFiligree)" stroke-width="2.2" filter="url(#shadow3D)" />
-
       <path d="M 32,54 Q 55,40 78,54 Q 55,68 32,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
       <path d="M 122,54 Q 145,40 168,54 Q 145,68 122,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
-
       <path d="M 100,12 L 106,28 L 100,24 L 94,28 Z" fill="url(#goldFiligree)" />
       <path d="M 100,5 L 109,24 L 100,20 L 91,24 Z" fill="url(#goldFiligree)" opacity="0.8" />
       <circle cx="100" cy="4" r="2.5" fill="#FFFFFF" />
-
       <path d="M 100,28 C 82,12 55,10 30,20 C 15,25 8,30 5,18 C 22,8 55,8 85,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
       <path d="M 28,26 C 45,18 68,22 80,32" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
       <path d="M 18,44 C 10,36 12,26 22,28 M 12,58 C 4,50 6,38 18,42" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
-
       <path d="M 100,28 C 118,12 145,10 170,20 C 185,25 192,30 195,18 C 178,8 145,8 115,22 Z" fill="url(#goldFiligree)" opacity="0.85" />
       <path d="M 172,26 C 155,18 132,22 120,32" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
       <path d="M 182,44 C 190,36 188,26 178,28 M 188,58 C 196,50 194,38 182,42" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
-
       <path d="M 48,76 C 32,80 18,72 24,62 C 28,55 40,60 46,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
       <path d="M 152,76 C 168,80 182,72 176,62 C 172,55 160,60 154,68" stroke="url(#goldFiligree)" stroke-width="1.2" fill="none" />
-
       <path d="M 100,48 L 96,65 L 100,70 L 104,65 Z" fill="url(#goldFiligree)" />
     </svg>
 
@@ -69,21 +72,71 @@ const categories = (categoriesData || []).map(c => c.name);
     <p class="subtitle">L'anonymat tombe le temps d'une nuit... Élisez les rois et reines de la soirée.</p>
   </div>
 
-<div class="voting-container">
-  {categories.length === 0 && <p class="empty-categories">Aucune catégorie de vote disponible pour le moment.</p>}
-  {categories.map((category) => (
-      <GlassCard title={category}>
-        <form action="/api/vote" method="POST">
-          <input type="hidden" name="category" value={category} />
-          <label class="input-label">Votre nom complet :</label>
-          <input type="text" name="voter_name" class="voter-name-input" placeholder="Ex: Marie Dupont" required />
-          <label class="input-label">Votre favori(te) :</label>
-          <input type="text" name="voted_for" placeholder="Entrez un nom complet..." required />
-          <GoldButton text="Valider mon vote" type="submit" />
-        </form>
-      </GlassCard>
-    ))}
-  </div>
+  {votingClosed && (
+    <div class="voting-closed-banner">
+      🔒 Les votes sont actuellement clos. Merci de votre participation !
+      <p><a href="/results">Voir les résultats officiels →</a></p>
+    </div>
+  )}
+
+  {!votingClosed && participants.length === 0 && (
+    <p class="empty-categories">Aucun participant n'a encore été ajouté. Revenez plus tard !</p>
+  )}
+
+  {!votingClosed && categories.length === 0 && (
+    <p class="empty-categories">Aucune catégorie de vote disponible pour le moment.</p>
+  )}
+
+  {!votingClosed && categories.length > 0 && participants.length > 0 && (
+    <>
+      <div class="voter-name-section">
+        <GlassCard>
+          <label class="input-label" for="voter-name-master">Votre nom complet (une seule fois) :</label>
+          <input type="text" id="voter-name-master" placeholder="Ex: Marie Dupont" autocomplete="name" required />
+          <p class="hint-small">Ce nom sert à vérifier que vous ne votez qu'une fois par catégorie.</p>
+        </GlassCard>
+      </div>
+
+      <div class="voting-container">
+        {categories.map((category) => (
+          <GlassCard title={category.name}>
+            <form action="/api/vote" method="POST" class="vote-form">
+              <input type="hidden" name="category_id" value={category.id} />
+              <input type="hidden" name="voter_name" class="voter-name-hidden" />
+
+              <input
+                type="text"
+                class="participant-search"
+                placeholder="🔍 Rechercher un participant..."
+                data-target={`participants-${category.id}`}
+              />
+
+              <div class="participants-grid" id={`participants-${category.id}`}>
+                {participants.map((p) => (
+                  <label class="participant-option" data-name={p.name.toLowerCase()}>
+                    <input type="radio" name="participant_id" value={p.id} required />
+                    <img
+                      src={p.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=D4AF37&color=fff`}
+                      alt=""
+                      class="participant-photo"
+                    />
+                    <span class="participant-label-name">{p.name}</span>
+                  </label>
+                ))}
+                <label class="participant-option blank-option" data-name="vote blanc">
+                  <input type="radio" name="participant_id" value="" required />
+                  <span class="blank-icon">🗳️</span>
+                  <span class="participant-label-name">Vote Blanc</span>
+                </label>
+              </div>
+
+              <GoldButton text="Valider mon vote" type="submit" />
+            </form>
+          </GlassCard>
+        ))}
+      </div>
+    </>
+  )}
 
   <div class="footer-admin">
     <a href="/admin" class="admin-link">🔒 Administration</a>
@@ -93,9 +146,8 @@ const categories = (categoriesData || []).map(c => c.name);
 
 <script is:inline>
   document.addEventListener('DOMContentLoaded', () => {
-    // --- Le votant tape son nom une seule fois, il se propage aux 4 formulaires ---
-    const nameInputs = document.querySelectorAll('.voter-name-input');
     const COOKIE_NAME = 'voter_name';
+    const masterInput = document.getElementById('voter-name-master');
 
     const getCookie = (key) => {
       const match = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
@@ -105,21 +157,52 @@ const categories = (categoriesData || []).map(c => c.name);
       document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax`;
     };
 
-    const savedName = getCookie(COOKIE_NAME);
-    if (savedName) {
-      nameInputs.forEach(input => { input.value = savedName; });
+    if (masterInput) {
+      const savedName = getCookie(COOKIE_NAME);
+      if (savedName) masterInput.value = savedName;
+      masterInput.addEventListener('input', () => setCookie(COOKIE_NAME, masterInput.value));
     }
 
-    nameInputs.forEach(input => {
+    // Recherche / filtrage par catégorie
+    document.querySelectorAll('.participant-search').forEach((input) => {
       input.addEventListener('input', () => {
-        setCookie(COOKIE_NAME, input.value);
-        nameInputs.forEach(other => {
-          if (other !== input) other.value = input.value;
+        const container = document.getElementById(input.dataset.target);
+        if (!container) return;
+        const query = input.value.trim().toLowerCase();
+        container.querySelectorAll('.participant-option').forEach((opt) => {
+          if (opt.classList.contains('blank-option')) return;
+          const name = opt.dataset.name || '';
+          opt.style.display = name.includes(query) ? '' : 'none';
         });
       });
     });
 
-    // --- Message de succès / erreur après redirection depuis /api/vote ---
+    // Surbrillance de l'option sélectionnée
+    document.querySelectorAll('.participants-grid').forEach((grid) => {
+      grid.addEventListener('change', (e) => {
+        if (e.target.name !== 'participant_id') return;
+        grid.querySelectorAll('.participant-option').forEach((opt) => opt.classList.remove('selected'));
+        e.target.closest('.participant-option')?.classList.add('selected');
+      });
+    });
+
+    // Validation + propagation du nom avant envoi
+    document.querySelectorAll('.vote-form').forEach((form) => {
+      form.addEventListener('submit', (e) => {
+        const name = masterInput ? masterInput.value.trim() : '';
+        if (!name) {
+          e.preventDefault();
+          alert("Merci d'indiquer votre nom complet avant de voter.");
+          masterInput?.focus();
+          masterInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+        form.querySelector('.voter-name-hidden').value = name;
+        setCookie(COOKIE_NAME, name);
+      });
+    });
+
+    // Message de succès / erreur après redirection depuis /api/vote
     const params = new URLSearchParams(window.location.search);
     const notif = document.getElementById('success-notification');
 
@@ -136,11 +219,9 @@ const categories = (categoriesData || []).map(c => c.name);
     const errorType = params.get('error');
     if (errorType) {
       let message = "Une erreur est survenue lors de l'envoi de votre vote. Merci de réessayer.";
-      if (errorType === 'deja_vote') {
-        message = "Vous avez déjà voté dans cette catégorie.";
-      } else if (errorType === 'champs_manquants' || errorType === 'nom_invalide') {
-        message = "Merci de remplir votre nom et votre vote avant de valider.";
-      }
+      if (errorType === 'deja_vote') message = "Vous avez déjà voté dans cette catégorie.";
+      else if (errorType === 'champs_manquants' || errorType === 'nom_invalide') message = "Merci de remplir votre nom avant de valider.";
+      else if (errorType === 'votes_fermes') message = "Les votes sont actuellement fermés.";
       alert(message);
       window.history.replaceState({}, '', '/');
     }
@@ -148,123 +229,70 @@ const categories = (categoriesData || []).map(c => c.name);
 </script>
 
 <style>
-  .hero-section {
-    text-align: center;
-    padding: 2rem 1rem 1.5rem 1rem;
-    position: relative;
-  }
-
-  .custom-mask-icon {
-    width: 150px;
-    height: auto;
-    margin: 0 auto 1rem auto;
-    display: block;
-    animation: float-mask 4s ease-in-out infinite;
-  }
-
+  .hero-section { text-align: center; padding: 2rem 1rem 1.5rem 1rem; position: relative; }
+  .custom-mask-icon { width: 150px; height: auto; margin: 0 auto 1rem auto; display: block; animation: float-mask 4s ease-in-out infinite; }
   @keyframes float-mask {
     0% { transform: translateY(0px) scale(1); }
     50% { transform: translateY(-7px) scale(1.02); }
     100% { transform: translateY(0px) scale(1); }
   }
-
   .school-badge {
-    display: inline-block;
-    background: rgba(245, 208, 97, 0.1);
-    color: var(--gold, #D4AF37);
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    border: 1px solid rgba(245, 208, 97, 0.3);
-    margin-bottom: 1rem;
+    display: inline-block; background: rgba(245, 208, 97, 0.1); color: var(--gold, #D4AF37);
+    padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(245, 208, 97, 0.3); margin-bottom: 1rem;
   }
-
   .hero-section h1 {
-    font-size: 2.2rem;
-    background: linear-gradient(135deg, #fff 30%, var(--gold, #D4AF37) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
+    font-size: 2.2rem; background: linear-gradient(135deg, #fff 30%, var(--gold, #D4AF37) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;
   }
+  .subtitle { color: #a1a1aa; font-size: 0.95rem; max-width: 400px; margin: 0 auto 2rem auto; line-height: 1.5; }
 
-  .subtitle {
-    color: #a1a1aa;
-    font-size: 0.95rem;
-    max-width: 400px;
-    margin: 0 auto 2rem auto;
-    line-height: 1.5;
+  .voting-closed-banner {
+    max-width: 600px; margin: 2rem auto; padding: 1.5rem; text-align: center;
+    background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 12px; color: #fca5a5;
   }
+  .voting-closed-banner a { color: var(--gold, #D4AF37); }
 
-  .voting-container {
-    max-width: 800px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 0 1rem;
-  }
-  @media (min-width: 768px) {
-    .voting-container { grid-template-columns: 1fr 1fr; }
-  }
+  .voter-name-section { max-width: 600px; margin: 0 auto 1.5rem auto; padding: 0 1rem; }
+  .hint-small { font-size: 0.8rem; color: #a1a1aa; margin-top: -0.5rem; }
 
-  .input-label {
-    display: block;
-    margin-bottom: 8px;
-    color: #d4d4d8;
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
+  .voting-container { max-width: 800px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 1.5rem; padding: 0 1rem; }
+  @media (min-width: 768px) { .voting-container { grid-template-columns: 1fr 1fr; } }
 
-  input[type="text"] {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 1rem;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #fff;
-    box-sizing: border-box;
+  .input-label { display: block; margin-bottom: 8px; color: #d4d4d8; font-size: 0.9rem; font-weight: 500; }
+
+  .participant-search { margin-bottom: 1rem; }
+
+  .participants-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.6rem;
+    max-height: 320px; overflow-y: auto; padding: 0.5rem; margin-bottom: 1rem;
+    background: rgba(0,0,0,0.25); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
   }
-  input[type="text"]:focus {
-    outline: none;
-    border-color: var(--gold, #D4AF37);
+  .participant-option {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding: 0.5rem;
+    border-radius: 10px; border: 2px solid transparent; cursor: pointer; text-align: center;
+    transition: all 0.2s ease; background: rgba(255,255,255,0.03);
   }
+  .participant-option:hover { background: rgba(255,255,255,0.08); }
+  .participant-option input[type="radio"] { opacity: 0; width: 0; height: 0; position: absolute; }
+  .participant-option.selected { border-color: var(--gold, #D4AF37); background: rgba(212, 175, 55, 0.15); }
+  .participant-photo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
+  .participant-label-name { font-size: 0.72rem; color: #e4e4e7; line-height: 1.1; word-break: break-word; }
+  .blank-option { border-style: dashed; border-color: rgba(255,255,255,0.15); }
+  .blank-option .blank-icon { font-size: 1.6rem; }
 
   .notification {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #4ade80;
-    color: #064e3b;
-    padding: 12px 24px;
-    border-radius: 30px;
-    font-weight: bold;
-    box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
-    z-index: 1000;
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #4ade80; color: #064e3b; padding: 12px 24px; border-radius: 30px;
+    font-weight: bold; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4); z-index: 1000;
     transition: opacity 0.5s ease, top 0.5s ease;
   }
   .hidden { opacity: 0; pointer-events: none; top: -50px; }
   .show { opacity: 1; top: 20px; }
 
-  .footer-admin {
-    text-align: center;
-    margin-top: 4rem;
-    padding-bottom: 2rem;
-  }
-
-  .admin-link {
-    color: rgba(255, 255, 255, 0.3);
-    text-decoration: none;
-    font-size: 0.85rem;
-    transition: color 0.3s ease;
-  }
-
-  .admin-link:hover {
-    color: var(--gold, #D4AF37);
-  }
-.empty-categories { text-align: center; color: #a1a1aa; padding: 2rem; }
+  .footer-admin { text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
+  .admin-link { color: rgba(255, 255, 255, 0.3); text-decoration: none; font-size: 0.85rem; transition: color 0.3s ease; }
+  .admin-link:hover { color: var(--gold, #D4AF37); }
+  .empty-categories { text-align: center; color: #a1a1aa; padding: 2rem; }
 </style>
