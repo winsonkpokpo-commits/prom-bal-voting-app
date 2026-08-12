@@ -1,8 +1,8 @@
 ---
-import Layout from '../../components/Layout.astro';
-import GlassCard from '../../components/GlassCard.astro';
-import { requireAdminSession } from '../../lib/admin-auth';
-
+import { isAdminAuthenticated } from '../../lib/admin-auth';
+if (!isAdminAuthenticated(Astro)) {
+  return Astro.redirect('/admin');
+}
 // Redirection directe côté serveur si l'utilisateur n'est pas connecté
 if (!requireAdminSession(Astro)) {
   return Astro.redirect('/admin');
