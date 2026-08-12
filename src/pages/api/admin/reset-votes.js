@@ -4,11 +4,11 @@ import { supabase } from '../../../lib/supabase';
 export const POST = async ({ request }) => {
   try {
     const body = await request.json();
-    const auth = requireAdmin(request, body.token);
+    const auth = requireAdmin({ request });
     if (!auth.ok) return auth.response;
 
     // Supprimer tous les votes (attention, irréversible !)
-    const { error } = await supabase.from('ballots').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // hack for deleting all
+    const { error } = await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // hack for deleting all
 
     if (error) {
       console.error("Erreur reset-votes:", error);
