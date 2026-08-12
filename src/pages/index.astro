@@ -69,8 +69,9 @@ const categories = (categoriesData || []).map(c => c.name);
     <p class="subtitle">L'anonymat tombe le temps d'une nuit... Élisez les rois et reines de la soirée.</p>
   </div>
 
-  <div class="voting-container">
-    {categories.map((category) => (
+<div class="voting-container">
+  {categories.length === 0 && <p class="empty-categories">Aucune catégorie de vote disponible pour le moment.</p>}
+  {categories.map((category) => (
       <GlassCard title={category}>
         <form action="/api/vote" method="POST">
           <input type="hidden" name="category" value={category} />
@@ -265,4 +266,5 @@ const categories = (categoriesData || []).map(c => c.name);
   .admin-link:hover {
     color: var(--gold, #D4AF37);
   }
+.empty-categories { text-align: center; color: #a1a1aa; padding: 2rem; }
 </style>
