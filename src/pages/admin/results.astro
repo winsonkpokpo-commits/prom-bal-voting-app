@@ -1,78 +1,125 @@
 ---
+import Layout from '../../components/Layout.astro';
 import { isAdminAuthenticated } from '../../lib/admin-auth';
+
 if (!isAdminAuthenticated(Astro)) {
-  return Astro.redirect('/admin');
-}
-// Redirection directe côté serveur si l'utilisateur n'est pas connecté
-if (!requireAdminSession(Astro)) {
-  return Astro.redirect('/admin');
+  return Astro.redirect('/admin/login');
 }
 ---
 
 <Layout title="Résultats du Bal - CPEG Ste Bakhita">
-  <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+  <div class="header-actions">
     <h1>Résultats du Bal 2026</h1>
     <a href="/admin" class="btn-secondary">Retour Admin</a>
   </div>
 
-  <div id="results-container">
-    <div class="text-center" style="margin-bottom: 2rem;">
-      <h2 style="font-size: 2rem; color: var(--gold, #D4AF37);">Tableau de Bord Officiel</h2>
-      <p id="total-votes">Chargement des données...</p>
-      <button id="refresh-btn" class="btn-refresh">Rafraîchir les résultats</button>
-    </div>
-
-    <GlassCard>
-      <h3>Votes enregistrés</h3>
-      <div id="votes-list">
-        <p>Les données sont prêtes à être alimentées depuis la base Supabase.</p>
-      </div>
-    </GlassCard>
+  <div class="text-center">
+    <p id="total-votes">Chargement des données...</p>
+    <button id="refresh-btn" class="btn-refresh">🔄 Rafraîchir les résultats</button>
   </div>
+
+  <div id="results-container"></div>
 </Layout>
 
 <script is:inline>
-  document.addEventListener('DOMContentLoaded', () => {
-    const totalVotesEl = document.getElementById('total-votes');
+  const container = document.getElementById('results-container');
+  const totalVotesEl = document.getElementById('total-votes');
 
-    const fetchResults = async () => {
-      try {
-        const res = await fetch('/api/results');
-        if (res.ok) {
-          const data = await res.json();
-          totalVotesEl.textContent = `Total des bulletins : ${data.total || 0}`;
-        } else if (res.status === 401) {
-          window.location.href = '/admin';
-        }
-      } catch (err) {
+  function renderResults(data) {
+    totalVotesEl.textContent = `Total des bulletins : ${data.total || 0} (dont ${data.blank || 0} vote(s) blanc(s))`;
+    container.innerHTML = '';
+
+    (data.results || []).forEach(catResult => {
+      const card = document.createElement('div');
+      card.className = 'result-card';
+
+      const title = document.createElement('h3');
+      title.textContent = catResult.category;
+      card.appendChild(title);
+
+      if (!catResult.ranking || catResult.ranking.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-text';
+        empty.textContent = 'Aucun vote pour cette catégorie.';
+        card.appendChild(empty);
+      } else {
+        const maxCount = catResult.ranking[0].count || 1;
+        catResult.ranking.forEach((r, idx) => {
+          const row = document.createElement('div');
+          row.className = 'result-row';
+
+          const rank = document.createElement('span');
+          rank.className = 'rank';
+          rank.textContent = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+
+          const name = document.createElement('span');
+          name.className = 'result-name';
+          name.textContent = r.name;
+
+          const barWrap = document.createElement('div');
+          barWrap.className = 'bar-wrap';
+          const bar = document.createElement('div');
+          bar.className = 'bar';
+          bar.style.width = `${Math.max(6, (r.count / maxCount) * 100)}%`;
+          barWrap.appendChild(bar);
+
+          const count = document.createElement('span');
+          count.className = 'result-count';
+          count.textContent = `${r.count} vote(s)`;
+
+          row.appendChild(rank);
+          row.appendChild(name);
+          row.appendChild(barWrap);
+          row.appendChild(count);
+          card.appendChild(row);
+        });
+      }
+      container.appendChild(card);
+    });
+  }
+
+  const fetchResults = async () => {
+    try {
+      const res = await fetch('/api/results');
+      if (res.status === 401) { window.location.href = '/admin/login'; return; }
+      if (res.ok) {
+        renderResults(await res.json());
+      } else {
         totalVotesEl.textContent = "Erreur lors du chargement des résultats.";
       }
-    };
+    } catch (err) {
+      totalVotesEl.textContent = "Erreur lors du chargement des résultats.";
+    }
+  };
 
-    document.getElementById('refresh-btn')?.addEventListener('click', fetchResults);
-    fetchResults();
-  });
+  document.getElementById('refresh-btn')?.addEventListener('click', fetchResults);
+  document.addEventListener('DOMContentLoaded', fetchResults);
 </script>
 
 <style>
-  .text-center { text-align: center; }
+  .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+  .text-center { text-align: center; margin-bottom: 2rem; }
   h1 { color: #fff; font-size: 1.8rem; }
   .btn-secondary {
-    color: var(--gold, #D4AF37);
-    border: 1px solid var(--gold, #D4AF37);
-    padding: 6px 14px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 0.85rem;
+    color: var(--gold, #D4AF37); border: 1px solid var(--gold, #D4AF37);
+    padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 0.85rem;
   }
   .btn-refresh {
-    background: var(--gold, #D4AF37);
-    color: #000;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
+    background: var(--gold, #D4AF37); color: #000; border: none;
+    padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; margin-top: 10px;
   }
+
+  .result-card {
+    background: rgba(20, 20, 20, 0.6); border: 1px solid rgba(212, 175, 55, 0.15);
+    border-radius: 12px; padding: 1.2rem; margin-bottom: 1.2rem;
+  }
+  .result-card h3 { text-align: left; margin-top: 0; margin-bottom: 1rem; color: var(--gold, #D4AF37); }
+
+  .result-row { display: grid; grid-template-columns: 24px 100px 1fr auto; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .rank { text-align: center; }
+  .result-name { color: #fff; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-wrap { background: rgba(255,255,255,0.08); border-radius: 20px; height: 10px; overflow: hidden; }
+  .bar { background: linear-gradient(90deg, #D4AF37, #F5D061); height: 100%; border-radius: 20px; }
+  .result-count { font-size: 0.78rem; color: #a1a1aa; white-space: nowrap; }
+  .empty-text { color: #a1a1aa; font-size: 0.85rem; }
 </style>
