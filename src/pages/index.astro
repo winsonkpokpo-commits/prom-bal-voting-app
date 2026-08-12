@@ -7,7 +7,7 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
 ---
 
 <Layout title="Bal Masqué 2026 - CPEG Ste Bakhita">
-  
+
   <div id="success-notification" class="notification hidden">
     ✅ Votre vote a bien été enregistré !
   </div>
@@ -68,6 +68,8 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
       <GlassCard title={category}>
         <form action="/api/vote" method="POST">
           <input type="hidden" name="category" value={category} />
+          <label class="input-label">Votre nom complet :</label>
+          <input type="text" name="voter_name" class="voter-name-input" placeholder="Ex: Marie Dupont" required />
           <label class="input-label">Votre favori(te) :</label>
           <input type="text" name="voted_for" placeholder="Entrez un nom complet..." required />
           <GoldButton text="Valider mon vote" type="submit" />
@@ -83,129 +85,59 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
 </Layout>
 
 <script is:inline>
-  let isEditing = false;
+  document.addEventListener('DOMContentLoaded', () => {
+    // --- Le votant tape son nom une seule fois, il se propage aux 4 formulaires ---
+    const nameInputs = document.querySelectorAll('.voter-name-input');
+    const COOKIE_NAME = 'voter_name';
 
-  // --- CHARGER LA LISTE DES CANDIDATS ---
-  async function loadCandidates() {
-    const container = document.getElementById('candidates-container');
-    if (!container) return;
+    const getCookie = (key) => {
+      const match = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
+      return match ? decodeURIComponent(match[1]) : '';
+    };
+    const setCookie = (key, value) => {
+      document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax`;
+    };
 
-    try {
-      // 🟢 AJOUT CRUCIAL : credentials: 'same-origin'
-      const res = await fetch('/api/admin/candidates', { credentials: 'same-origin' });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        if (!data.candidates || data.candidates.length === 0) {
-          container.innerHTML = '<p class="empty-text">Aucun candidat enregistré pour le moment.</p>';
-          return;
-        }
-
-        container.innerHTML = data.candidates.map(c => `
-          <div class="candidate-item" id="candidate-card-${c.id}">
-            <div class="candidate-info">
-              ${c.photo_url 
-                ? `<img src="${c.photo_url}" class="avatar-img" alt="${c.name}" />`
-                : `<div class="avatar-placeholder">${c.name.charAt(0).toUpperCase()}</div>`
-              }
-              <div>
-                <h4 class="candidate-name">${c.name}</h4>
-                <span class="candidate-cat">${c.category}</span>
-              </div>
-            </div>
-            <div class="actions-group">
-              <button type="button" onclick="startEdit('${c.id}', \`${c.name.replace(/'/g, "\\'")}\`, \`${c.category.replace(/'/g, "\\'")}\`)" class="btn-edit" title="Éditer">✏️</button>
-              <button type="button" onclick="deleteCandidate('${c.id}', \`${c.name.replace(/'/g, "\\'")}\`)" class="btn-delete" title="Supprimer">🗑️</button>
-            </div>
-          </div>
-        `).join('');
-      } else {
-        container.innerHTML = '<p class="error-text">Erreur 401 : Reconnectez-vous.</p>';
-      }
-    } catch (e) {
-      container.innerHTML = '<p class="error-text">Impossible de contacter le serveur.</p>';
+    const savedName = getCookie(COOKIE_NAME);
+    if (savedName) {
+      nameInputs.forEach(input => { input.value = savedName; });
     }
-  }
 
-  // --- PRÉPARER LE FORMULAIRE EN MODE ÉDITION ---
-  window.startEdit = (id, name, category) => {
-    isEditing = true;
-    document.getElementById('edit-candidate-id').value = id;
-    document.getElementById('name').value = name;
-    document.getElementById('category').value = category;
-    document.getElementById('submit-btn').innerHTML = '💾 Enregistrer les modifications';
-    document.getElementById('edit-badge').classList.remove('hidden');
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // --- RÉINITIALISER LE FORMULAIRE EN MODE AJOUT ---
-  window.resetForm = () => {
-    isEditing = false;
-    document.getElementById('candidate-form').reset();
-    document.getElementById('edit-candidate-id').value = '';
-    document.getElementById('submit-btn').innerHTML = '➕ Enregistrer le candidat';
-    document.getElementById('edit-badge').classList.add('hidden');
-  };
-
-  // --- SUPPRIMER UN CANDIDAT ---
-  window.deleteCandidate = async (id, name) => {
-    if (!confirm(`Voulez-vous vraiment supprimer "${name}" ?`)) return;
-
-    try {
-      // 🟢 AJOUT CRUCIAL : credentials: 'same-origin'
-      const res = await fetch(`/api/admin/candidates?id=${id}`, { 
-        method: 'DELETE',
-        credentials: 'same-origin'
+    nameInputs.forEach(input => {
+      input.addEventListener('input', () => {
+        setCookie(COOKIE_NAME, input.value);
+        nameInputs.forEach(other => {
+          if (other !== input) other.value = input.value;
+        });
       });
-      
-      if (res.ok) {
-        loadCandidates();
-      } else {
-        alert("Erreur lors de la suppression (Déconnecté ?).");
-      }
-    } catch (e) {
-      alert("Erreur de connexion.");
+    });
+
+    // --- Message de succès / erreur après redirection depuis /api/vote ---
+    const params = new URLSearchParams(window.location.search);
+    const notif = document.getElementById('success-notification');
+
+    if (params.get('success') === '1' && notif) {
+      notif.classList.remove('hidden');
+      notif.classList.add('show');
+      setTimeout(() => {
+        notif.classList.remove('show');
+        notif.classList.add('hidden');
+      }, 4000);
+      window.history.replaceState({}, '', '/');
     }
-  };
 
-  // --- SOUMISSION DU FORMULAIRE (AJOUT OU MODIFICATION) ---
-  document.getElementById('candidate-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-    const method = isEditing ? 'PUT' : 'POST';
-    const submitBtn = document.getElementById('submit-btn');
-
-    submitBtn.disabled = true;
-    submitBtn.style.opacity = '0.5';
-
-    try {
-      // 🟢 AJOUT CRUCIAL : credentials: 'same-origin'
-      const res = await fetch('/api/admin/candidates', {
-        method: method,
-        body: formData,
-        credentials: 'same-origin'
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        resetForm();
-        loadCandidates();
-      } else {
-        alert(data.error || "Session expirée ou erreur d'enregistrement.");
+    const errorType = params.get('error');
+    if (errorType) {
+      let message = "Une erreur est survenue lors de l'envoi de votre vote. Merci de réessayer.";
+      if (errorType === 'deja_vote') {
+        message = "Vous avez déjà voté dans cette catégorie.";
+      } else if (errorType === 'champs_manquants' || errorType === 'nom_invalide') {
+        message = "Merci de remplir votre nom et votre vote avant de valider.";
       }
-    } catch (err) {
-      alert("Erreur réseau : Vérifiez votre connexion.");
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.style.opacity = '1';
+      alert(message);
+      window.history.replaceState({}, '', '/');
     }
   });
-
-  // Charger au démarrage
-  document.addEventListener('DOMContentLoaded', loadCandidates);
 </script>
 
 <style>
@@ -215,9 +147,8 @@ const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le
     position: relative;
   }
 
-  /* Ajustement de la taille du masque */
   .custom-mask-icon {
-    width: 150px; /* Plus large pour apprécier les détails de la dentelle */
+    width: 150px;
     height: auto;
     margin: 0 auto 1rem auto;
     display: block;
