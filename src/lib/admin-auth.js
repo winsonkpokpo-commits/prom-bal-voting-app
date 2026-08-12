@@ -1,7 +1,22 @@
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'; // Change le mot de passe ici ou dans les variables d'environnement Vercel
+// src/lib/admin-auth.js
+import crypto from 'node:crypto';
+
+function getAdminSecret() {
+  // Compatible avec les deux façons dont Vercel/Astro peuvent exposer la variable
+  return process.env.ADMIN_SECRET_KEY || import.meta.env.ADMIN_SECRET_KEY || '';
+}
 
 export function checkPassword(password) {
-  return password === ADMIN_PASSWORD;
+  const secret = getAdminSecret();
+  if (!secret || !password) return false;
+
+  const a = Buffer.from(String(password).trim());
+  const b = Buffer.from(String(secret).trim());
+
+  // timingSafeEqual exige des buffers de même longueur
+  if (a.length !== b.length) return false;
+
+  return crypto.timingSafeEqual(a, b);
 }
 
 export function isAdminAuthenticated(context) {
