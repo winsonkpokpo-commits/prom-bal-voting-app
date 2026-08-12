@@ -1,10 +1,10 @@
+// src/pages/api/admin/close-votes.js
 import { requireAdmin } from '../../../lib/admin-auth';
 import { supabase } from '../../../lib/supabase';
 
-export const POST = async ({ request }) => {
+export const POST = async (context) => {
   try {
-    const body = await request.json();
-    const auth = requireAdmin(request, body.token);
+    const auth = requireAdmin(context);
     if (!auth.ok) return auth.response;
 
     const { error } = await supabase.from('config').update({ voting_closed: true }).eq('id', 1);
