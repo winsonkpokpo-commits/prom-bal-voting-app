@@ -8,6 +8,12 @@ export async function GET() {
     const { data: candidates, error: candidatesError } = await supabase.from('candidates').select('name, category, photo_url');
     if (candidatesError) throw candidatesError;
 
+    const { data: categoriesData, error: categoriesError } = await supabase
+      .from('categories')
+      .select('name')
+      .order('position', { ascending: true });
+    if (categoriesError) throw categoriesError;
+
     const tally = {};
     for (const v of votes || []) {
       const cat = v.category;
@@ -33,13 +39,16 @@ export async function GET() {
         .sort((a, b) => b.count - a.count);
     };
 
+    const otherCategories = {};
+    for (const cat of categoriesData || []) {
+      if (cat.name === 'Roi du Bal' || cat.name === 'Reine du Bal') continue;
+      otherCategories[cat.name] = buildRanking(cat.name);
+    }
+
     return new Response(JSON.stringify({
       king: buildRanking('Roi du Bal'),
       queen: buildRanking('Reine du Bal'),
-      categories: {
-        "Le/La plus élégant(e)": buildRanking("Le/La plus élégant(e)"),
-        "Le duo de la soirée": buildRanking("Le duo de la soirée")
-      }
+      categories: otherCategories
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('Erreur results-public:', err);
