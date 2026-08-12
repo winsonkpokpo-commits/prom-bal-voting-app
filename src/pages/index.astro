@@ -2,8 +2,14 @@
 import Layout from '../components/Layout.astro';
 import GlassCard from '../components/GlassCard.astro';
 import GoldButton from '../components/GoldButton.astro';
+import { supabase } from '../lib/supabase';
 
-const categories = ["Roi du Bal", "Reine du Bal", "Le/La plus élégant(e)", "Le duo de la soirée"];
+const { data: categoriesData } = await supabase
+  .from('categories')
+  .select('name')
+  .order('position', { ascending: true });
+
+const categories = (categoriesData || []).map(c => c.name);
 ---
 
 <Layout title="Bal Masqué 2026 - CPEG Ste Bakhita">
