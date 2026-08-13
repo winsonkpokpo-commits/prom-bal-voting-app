@@ -1,14 +1,16 @@
 import { requireAdmin } from '../../../lib/admin-auth';
 import { supabase } from '../../../lib/supabase';
 
-export const POST = async ({ request }) => {
+export const POST = async (context) => {
   try {
-    const body = await request.json();
-    const auth = requireAdmin({ request });
+    const auth = requireAdmin(context);
     if (!auth.ok) return auth.response;
 
     // Supprimer tous les votes (attention, irréversible !)
-    const { error } = await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // hack for deleting all
+    const { error } = await supabase
+      .from('votes')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // astuce pour supprimer toutes les lignes
 
     if (error) {
       console.error("Erreur reset-votes:", error);
