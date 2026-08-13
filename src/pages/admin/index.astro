@@ -1,4 +1,3 @@
-
 ---
 import Layout from '../../components/Layout.astro';
 import GlassCard from '../../components/GlassCard.astro';
@@ -43,6 +42,21 @@ if (!isAdminAuthenticated(Astro)) {
   </div>
 
   <div id="global-error" class="global-error hidden"></div>
+
+  <div class="voting-control-section">
+    <GlassCard title="🗳️ Contrôle du Scrutin">
+      <p id="voting-status" class="status-text">Chargement du statut...</p>
+      <div class="control-buttons">
+        <button id="close-votes-btn" class="btn-warning hidden" type="button">🔒 Fermer les votes</button>
+        <button id="reopen-votes-btn" class="btn-success hidden" type="button">🔓 Rouvrir les votes</button>
+      </div>
+      <div class="danger-zone">
+        <p class="danger-label">⚠️ Zone dangereuse</p>
+        <button id="reset-votes-btn" class="btn-danger" type="button">🗑️ Réinitialiser tous les votes</button>
+        <p class="danger-hint">Supprime définitivement tous les votes enregistrés. Les participants et catégories restent intacts.</p>
+      </div>
+    </GlassCard>
+  </div>
 
   <div class="admin-grid">
     <GlassCard title="✍️ Ajouter / Modifier un Participant">
@@ -103,6 +117,70 @@ if (!isAdminAuthenticated(Astro)) {
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await fetch('/api/admin/logout', { method: 'POST' });
     window.location.href = '/admin/login';
+  });
+
+  // --- CONTRÔLE DU SCRUTIN ---
+  async function loadVotingStatus() {
+    const statusEl = document.getElementById('voting-status');
+    const closeBtn = document.getElementById('close-votes-btn');
+    const reopenBtn = document.getElementById('reopen-votes-btn');
+    if (!statusEl) return;
+
+    try {
+      const res = await fetch('/api/config');
+      const data = await res.json();
+      const closed = !!data.voting_closed;
+
+      statusEl.textContent = closed
+        ? '🔴 Les votes sont actuellement FERMÉS.'
+        : '🟢 Les votes sont actuellement OUVERTS.';
+
+      closeBtn?.classList.toggle('hidden', closed);
+      reopenBtn?.classList.toggle('hidden', !closed);
+    } catch (e) {
+      statusEl.textContent = "Impossible de charger le statut des votes.";
+    }
+  }
+
+  document.getElementById('close-votes-btn')?.addEventListener('click', async () => {
+    if (!confirm('Fermer les votes maintenant ? Les électeurs ne pourront plus voter.')) return;
+    try {
+      const res = await fetch('/api/admin/close-votes', { method: 'POST', credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) loadVotingStatus();
+      else showError(data.error || "Erreur lors de la fermeture des votes.");
+    } catch (e) {
+      showError("Erreur de connexion au serveur.");
+    }
+  });
+
+  document.getElementById('reopen-votes-btn')?.addEventListener('click', async () => {
+    if (!confirm('Rouvrir les votes ?')) return;
+    try {
+      const res = await fetch('/api/admin/reopen-votes', { method: 'POST', credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) loadVotingStatus();
+      else showError(data.error || "Erreur lors de la réouverture des votes.");
+    } catch (e) {
+      showError("Erreur de connexion au serveur.");
+    }
+  });
+
+  document.getElementById('reset-votes-btn')?.addEventListener('click', async () => {
+    if (!confirm('⚠️ Ceci va supprimer DÉFINITIVEMENT tous les votes enregistrés. Continuer ?')) return;
+    if (!confirm('Dernière confirmation : es-tu certain(e) ? Cette action est irréversible.')) return;
+
+    try {
+      const res = await fetch('/api/admin/reset-votes', { method: 'POST', credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        alert('Tous les votes ont été réinitialisés.');
+      } else {
+        showError(data.error || "Erreur lors de la réinitialisation.");
+      }
+    } catch (e) {
+      showError("Erreur de connexion au serveur.");
+    }
   });
 
   // --- PARTICIPANTS ---
@@ -323,6 +401,7 @@ if (!isAdminAuthenticated(Astro)) {
   });
 
   document.addEventListener('DOMContentLoaded', () => {
+    loadVotingStatus();
     loadParticipants();
     loadCategories();
   });
@@ -344,6 +423,22 @@ if (!isAdminAuthenticated(Astro)) {
     background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fecaca;
     border-radius: 8px; font-size: 0.9rem;
   }
+
+  .voting-control-section { max-width: 1000px; margin: 0 auto 2rem auto; padding: 0 1rem; }
+  .status-text { text-align: center; font-size: 1rem; color: #fff; margin-bottom: 1rem; font-weight: 600; }
+  .control-buttons { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .control-buttons button { flex: 1; }
+  .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #000 !important; }
+  .btn-success { background: linear-gradient(135deg, #4ade80, #16a34a) !important; color: #000 !important; }
+  .danger-zone {
+    border-top: 1px solid rgba(239, 68, 68, 0.3); padding-top: 1.2rem; margin-top: 0.5rem; text-align: center;
+  }
+  .danger-label { color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.6rem; }
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important;
+    border: 1px solid #ef4444 !important; box-shadow: none !important;
+  }
+  .danger-hint { color: #a1a1aa; font-size: 0.78rem; margin-top: 0.6rem; }
 
   .hint-text { color: #a1a1aa; font-size: 0.82rem; margin-top: -0.5rem; margin-bottom: 1rem; }
 
