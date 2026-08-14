@@ -1,7 +1,6 @@
 import { requireAdmin } from '../../../lib/admin-auth';
 import { supabase } from '../../../lib/supabase';
 
-// GET : liste des catégories, triées par position
 export async function GET(context) {
   const auth = requireAdmin(context);
   if (!auth.ok) return auth.response;
@@ -13,7 +12,6 @@ export async function GET(context) {
       .order('position', { ascending: true });
 
     if (error) throw error;
-
     return new Response(JSON.stringify({ success: true, categories: data }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
@@ -23,7 +21,6 @@ export async function GET(context) {
   }
 }
 
-// POST : ajouter une nouvelle catégorie
 export async function POST(context) {
   const auth = requireAdmin(context);
   if (!auth.ok) return auth.response;
@@ -31,6 +28,7 @@ export async function POST(context) {
   try {
     const body = await context.request.json();
     const name = (body.name || '').trim();
+    const slots = Math.min(5, Math.max(1, parseInt(body.slots, 10) || 1));
 
     if (!name) {
       return new Response(JSON.stringify({ success: false, error: 'Nom de catégorie requis' }), { status: 400 });
@@ -48,7 +46,7 @@ export async function POST(context) {
 
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ name, position: nextPosition }])
+      .insert([{ name, position: nextPosition, slots }])
       .select();
 
     if (error) {
@@ -64,7 +62,6 @@ export async function POST(context) {
   }
 }
 
-// DELETE : supprimer une catégorie
 export async function DELETE(context) {
   const auth = requireAdmin(context);
   if (!auth.ok) return auth.response;
@@ -72,15 +69,10 @@ export async function DELETE(context) {
   try {
     const url = new URL(context.request.url);
     const id = url.searchParams.get('id');
-
-    if (!id) {
-      return new Response(JSON.stringify({ success: false, error: 'ID manquant' }), { status: 400 });
-    }
+    if (!id) return new Response(JSON.stringify({ success: false, error: 'ID manquant' }), { status: 400 });
 
     const { error } = await supabase.from('categories').delete().eq('id', id);
-
     if (error) throw error;
-
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (err) {
     return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500 });
