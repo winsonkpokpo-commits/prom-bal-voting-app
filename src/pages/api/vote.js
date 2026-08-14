@@ -1,65 +1,50 @@
 import { supabase } from '../../lib/supabase';
+import { slugify } from '../../lib/slugify';
 
-function slugify(str) {
-  return (str || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
+function json(obj, status) {
+  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
 export async function POST({ request }) {
   try {
-    const rawText = await request.text();
-    const params = new URLSearchParams(rawText);
+    const body = await request.json();
+    const voter_name = (body.voter_name || '').toString().trim();
+    const selections = Array.isArray(body.selections) ? body.selections : [];
 
-    const category_id = params.get('category_id');
-    const participant_id = params.get('participant_id') || null; // vide = vote blanc
-    const voter_name = params.get('voter_name');
-
-    if (!category_id || !voter_name) {
-      return new Response(null, { status: 302, headers: { Location: '/?error=champs_manquants' } });
+    if (!voter_name || selections.length === 0) {
+      return json({ success: false, error: 'CHAMPS_MANQUANTS' }, 400);
     }
 
     const voter_slug = slugify(voter_name);
     if (!voter_slug) {
-      return new Response(null, { status: 302, headers: { Location: '/?error=nom_invalide' } });
+      return json({ success: false, error: 'NOM_INVALIDE' }, 400);
     }
 
-    // Vérifie que les votes ne sont pas fermés
-    const { data: configData } = await supabase
-      .from('config')
-      .select('voting_closed')
-      .eq('id', 1)
-      .single();
-
-    if (configData?.voting_closed) {
-      return new Response(null, { status: 302, headers: { Location: '/?error=votes_fermes' } });
+    for (const sel of selections) {
+      if (!sel.category_id || !Array.isArray(sel.participant_ids)) {
+        return json({ success: false, error: 'DONNEES_INVALIDES' }, 400);
+      }
     }
 
-    const { error } = await supabase
-      .from('votes')
-      .insert([{
-        category_id,
-        participant_id: participant_id || null,
-        voter_name: voter_name.toString().trim(),
-        voter_slug
-      }]);
+    const { error } = await supabase.rpc('cast_ballot', {
+      p_voter_name: voter_name,
+      p_voter_slug: voter_slug,
+      p_selections: selections
+    });
 
     if (error) {
-      if (error.code === '23505') {
-        return new Response(null, { status: 302, headers: { Location: '/?error=deja_vote' } });
-      }
-      const dbError = encodeURIComponent(error.message);
-      return new Response(null, { status: 302, headers: { Location: `/?error=bdd_${dbError}` } });
+      const msg = error.message || '';
+      if (msg.includes('VOTES_FERMES')) return json({ success: false, error: 'VOTES_FERMES' }, 403);
+      if (msg.includes('VOTANT_NON_AUTORISE')) return json({ success: false, error: 'VOTANT_NON_AUTORISE' }, 403);
+      if (msg.includes('DEJA_VOTE')) return json({ success: false, error: 'DEJA_VOTE' }, 409);
+      if (msg.includes('NOMBRE_PARTICIPANTS_INVALIDE')) return json({ success: false, error: 'NOMBRE_PARTICIPANTS_INVALIDE' }, 400);
+      console.error('Erreur cast_ballot:', error);
+      return json({ success: false, error: 'ERREUR_SERVEUR' }, 500);
     }
 
-    return new Response(null, { status: 302, headers: { Location: '/?success=1' } });
-
+    return json({ success: true }, 200);
   } catch (err) {
-    console.error("Crash critique API Vote:", err);
-    const errorMessage = encodeURIComponent(err.message || 'erreur_inconnue');
-    return new Response(null, { status: 302, headers: { Location: `/?error=crash_${errorMessage}` } });
+    console.error('Crash critique API Vote:', err);
+    return json({ success: false, error: 'ERREUR_SERVEUR' }, 500);
   }
 }
