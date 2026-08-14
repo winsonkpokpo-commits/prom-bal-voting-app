@@ -13,15 +13,10 @@ import GlassCard from '../components/GlassCard.astro';
 
     <div class="podium-grid">
       <GlassCard title="👑 Roi du Bal 2026">
-        <div id="king-podium" class="podium-cards">
-          <p class="loading">Chargement du podium...</p>
-        </div>
+        <div id="king-podium" class="podium-cards"><p class="loading">Chargement du podium...</p></div>
       </GlassCard>
-
       <GlassCard title="👑 Reine du Bal 2026">
-        <div id="queen-podium" class="podium-cards">
-          <p class="loading">Chargement du podium...</p>
-        </div>
+        <div id="queen-podium" class="podium-cards"><p class="loading">Chargement du podium...</p></div>
       </GlassCard>
     </div>
 
@@ -39,41 +34,43 @@ import GlassCard from '../components/GlassCard.astro';
     try {
       const res = await fetch('/api/results-public');
       if (!res.ok) return;
-
       const data = await res.json();
 
-      const renderPodium = (candidates, containerId) => {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        container.innerHTML = '';
-
+      const buildPodiumHTML = (candidates) => {
         if (!candidates || candidates.length === 0) {
-          container.innerHTML = '<p style="text-align:center; color:#a1a1aa;">Aucun vote pour le moment.</p>';
-          return;
+          return '<p style="text-align:center; color:#a1a1aa;">Aucun vote pour le moment.</p>';
         }
-
         const medals = ['🥇', '🥈', '🥉'];
         const ranks = ['first', 'second', 'third'];
-
-        candidates.slice(0, 3).forEach((c, idx) => {
-          const card = document.createElement('div');
-          card.className = `podium-card ${ranks[idx] || ''}`;
-          
+        return candidates.slice(0, 3).map((c, idx) => {
           const photoUrl = c.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name)}&background=D4AF37&color=fff`;
-
-          card.innerHTML = `
-            <div class="medal">${medals[idx] || (idx + 1)}</div>
-            <img src="${photoUrl}" alt="${c.name}" class="candidate-photo" />
-            <div class="candidate-name">${c.name}</div>
-            <div class="vote-count">${c.count || 0} vote(s)</div>
-          `;
-          container.appendChild(card);
-        });
+          return `
+            <div class="podium-card ${ranks[idx] || ''}">
+              <div class="medal">${medals[idx] || (idx + 1)}</div>
+              <img src="${photoUrl}" alt="${c.name}" class="candidate-photo" />
+              <div class="candidate-name">${c.name}</div>
+              <div class="vote-count">${c.count || 0} vote(s)</div>
+            </div>`;
+        }).join('');
       };
 
-      renderPodium(data.king, 'king-podium');
-      renderPodium(data.queen, 'queen-podium');
+      const kingEl = document.getElementById('king-podium');
+      const queenEl = document.getElementById('queen-podium');
+      if (kingEl) kingEl.innerHTML = buildPodiumHTML(data.king);
+      if (queenEl) queenEl.innerHTML = buildPodiumHTML(data.queen);
 
+      const otherContainer = document.getElementById('other-categories');
+      const categories = data.categories || {};
+      const names = Object.keys(categories);
+
+      if (otherContainer && names.length > 0) {
+        otherContainer.innerHTML = names.map((catName) => `
+          <div class="category-block">
+            <h2>${catName}</h2>
+            <div class="podium-cards">${buildPodiumHTML(categories[catName])}</div>
+          </div>
+        `).join('');
+      }
     } catch (err) {
       console.error(err);
     }
@@ -90,13 +87,12 @@ import GlassCard from '../components/GlassCard.astro';
   @media(min-width: 768px) { .podium-grid { grid-template-columns: 1fr 1fr; } }
 
   .podium-cards { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
-  
+
   .podium-card {
     display: flex; align-items: center; padding: 0.8rem 1rem;
     background: rgba(255, 255, 255, 0.05); border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.2s;
   }
-  
   .podium-card.first { border-color: #ffd700; background: rgba(255, 215, 0, 0.1); transform: scale(1.03); }
   .podium-card.second { border-color: #c0c0c0; }
   .podium-card.third { border-color: #cd7f32; }
@@ -105,6 +101,13 @@ import GlassCard from '../components/GlassCard.astro';
   .candidate-photo { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold, #D4AF37); margin-right: 1rem; }
   .candidate-name { flex: 1; text-align: left; font-weight: 600; color: #fff; font-size: 1.05rem; }
   .vote-count { background: rgba(212, 175, 55, 0.2); color: var(--gold, #D4AF37); padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.85rem; }
+
+  .category-block {
+    background: rgba(20, 20, 20, 0.6); border: 1px solid rgba(212, 175, 55, 0.15);
+    border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; text-align: left;
+  }
+  .category-block h2 { text-align: left; font-size: 1.2rem; margin-top: 0; }
+
   .footer-link { margin-top: 3rem; }
   .footer-link a { color: #a1a1aa; text-decoration: none; }
   .credit-line { color: rgba(255, 255, 255, 0.15); font-size: 0.72rem; margin-top: 0.8rem; letter-spacing: 0.5px; }
