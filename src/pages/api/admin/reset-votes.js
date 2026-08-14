@@ -6,15 +6,24 @@ export const POST = async (context) => {
     const auth = requireAdmin(context);
     if (!auth.ok) return auth.response;
 
-    // Supprimer tous les votes (attention, irréversible !)
-    const { error } = await supabase
+    const { error: votesError } = await supabase
       .from('votes')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // astuce pour supprimer toutes les lignes
+      .neq('id', '00000000-0000-0000-0000-000000000000');
 
-    if (error) {
-      console.error("Erreur reset-votes:", error);
+    if (votesError) {
+      console.error("Erreur reset-votes (votes):", votesError);
       return new Response(JSON.stringify({ error: "Impossible de réinitialiser les votes" }), { status: 500 });
+    }
+
+    const { error: receiptsError } = await supabase
+      .from('vote_receipts')
+      .delete()
+      .not('voter_slug', 'is', null);
+
+    if (receiptsError) {
+      console.error("Erreur reset-votes (receipts):", receiptsError);
+      return new Response(JSON.stringify({ error: "Votes supprimés mais échec de réinitialisation des reçus" }), { status: 500 });
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
