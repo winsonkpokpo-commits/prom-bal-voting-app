@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 
 const { data: categoriesData } = await supabase
   .from('categories')
-  .select('id, name')
+  .select('id, name, slots')
   .order('position', { ascending: true });
 
 const { data: participantsData } = await supabase
@@ -88,54 +88,65 @@ const votingClosed = configData?.voting_closed || false;
   )}
 
   {!votingClosed && categories.length > 0 && participants.length > 0 && (
-    <>
+    <form id="ballot-form" class="ballot-form">
       <div class="voter-name-section">
         <GlassCard>
-          <label class="input-label" for="voter-name-master">Votre nom complet (une seule fois) :</label>
-          <input type="text" id="voter-name-master" placeholder="Ex: Marie Dupont" autocomplete="name" required />
-          <p class="hint-small">Ce nom sert à vérifier que vous ne votez qu'une fois par catégorie.</p>
+          <label class="input-label" for="voter-name-master">Votre nom complet :</label>
+          <input type="text" id="voter-name-master" placeholder="Ex: Marie Dupont" autocomplete="name" />
+          <p class="hint-small">Ce nom doit correspondre exactement à la liste des élèves autorisés à voter.</p>
         </GlassCard>
       </div>
 
       <div class="voting-container">
         {categories.map((category) => (
-          <GlassCard title={category.name}>
-            <form action="/api/vote" method="POST" class="vote-form">
-              <input type="hidden" name="category_id" value={category.id} />
-              <input type="hidden" name="voter_name" class="voter-name-hidden" />
+          <GlassCard title={category.slots > 1 ? `${category.name} (choisissez ${category.slots})` : category.name}>
+            <input
+              type="text"
+              class="participant-search"
+              placeholder="🔍 Rechercher un participant..."
+              data-target={`participants-${category.id}`}
+            />
 
-              <input
-                type="text"
-                class="participant-search"
-                placeholder="🔍 Rechercher un participant..."
-                data-target={`participants-${category.id}`}
-              />
-
-              <div class="participants-grid" id={`participants-${category.id}`}>
-                {participants.map((p) => (
-                  <label class="participant-option" data-name={p.name.toLowerCase()}>
-                    <input type="radio" name="participant_id" value={p.id} required />
-                    <img
-                      src={p.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=D4AF37&color=fff`}
-                      alt=""
-                      class="participant-photo"
-                    />
-                    <span class="participant-label-name">{p.name}</span>
-                  </label>
-                ))}
-                <label class="participant-option blank-option" data-name="vote blanc">
-                  <input type="radio" name="participant_id" value="" required />
-                  <span class="blank-icon">🗳️</span>
-                  <span class="participant-label-name">Vote Blanc</span>
+            <div
+              class="participants-grid"
+              id={`participants-${category.id}`}
+              data-slots={category.slots}
+              data-category-id={category.id}
+            >
+              {participants.map((p) => (
+                <label class="participant-option" data-name={p.name.toLowerCase()}>
+                  <input
+                    type={category.slots > 1 ? 'checkbox' : 'radio'}
+                    name={`cat_${category.id}`}
+                    value={p.id}
+                  />
+                  <img
+                    src={p.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=D4AF37&color=fff`}
+                    alt=""
+                    class="participant-photo"
+                  />
+                  <span class="participant-label-name">{p.name}</span>
                 </label>
-              </div>
-
-              <GoldButton text="Valider mon vote" type="submit" />
-            </form>
+              ))}
+              <label class="participant-option blank-option" data-name="vote blanc">
+                <input
+                  type={category.slots > 1 ? 'checkbox' : 'radio'}
+                  name={`cat_${category.id}`}
+                  value="__blank__"
+                  class="blank-input"
+                />
+                <span class="blank-icon">🗳️</span>
+                <span class="participant-label-name">Vote Blanc</span>
+              </label>
+            </div>
           </GlassCard>
         ))}
       </div>
-    </>
+
+      <div class="submit-section">
+        <GoldButton text="Valider mon vote" type="submit" />
+      </div>
+    </form>
   )}
 
   <div class="footer-admin">
@@ -149,6 +160,8 @@ const votingClosed = configData?.voting_closed || false;
   document.addEventListener('DOMContentLoaded', () => {
     const COOKIE_NAME = 'voter_name';
     const masterInput = document.getElementById('voter-name-master');
+    const form = document.getElementById('ballot-form');
+    const notif = document.getElementById('success-notification');
 
     const getCookie = (key) => {
       const match = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
@@ -161,9 +174,9 @@ const votingClosed = configData?.voting_closed || false;
     if (masterInput) {
       const savedName = getCookie(COOKIE_NAME);
       if (savedName) masterInput.value = savedName;
-      masterInput.addEventListener('input', () => setCookie(COOKIE_NAME, masterInput.value));
     }
 
+    // Recherche par catégorie
     document.querySelectorAll('.participant-search').forEach((input) => {
       input.addEventListener('input', () => {
         const container = document.getElementById(input.dataset.target);
@@ -177,51 +190,113 @@ const votingClosed = configData?.voting_closed || false;
       });
     });
 
+    // Gestion des sélections (limite au nombre de slots, exclusivité du vote blanc)
     document.querySelectorAll('.participants-grid').forEach((grid) => {
+      const slots = parseInt(grid.dataset.slots, 10) || 1;
+
       grid.addEventListener('change', (e) => {
-        if (e.target.name !== 'participant_id') return;
-        grid.querySelectorAll('.participant-option').forEach((opt) => opt.classList.remove('selected'));
-        e.target.closest('.participant-option')?.classList.add('selected');
+        if (!e.target.matches('input')) return;
+
+        const blankInput = grid.querySelector('.blank-input');
+        const candidateInputs = Array.from(grid.querySelectorAll('input:not(.blank-input)'));
+
+        if (e.target === blankInput) {
+          if (blankInput.checked) {
+            candidateInputs.forEach((inp) => { inp.checked = false; if (slots > 1) inp.disabled = true; });
+          } else {
+            candidateInputs.forEach((inp) => { inp.disabled = false; });
+          }
+        } else if (slots > 1) {
+          const checkedCount = candidateInputs.filter((inp) => inp.checked).length;
+          candidateInputs.forEach((inp) => { inp.disabled = !inp.checked && checkedCount >= slots; });
+          if (blankInput) blankInput.disabled = checkedCount > 0;
+        }
+
+        grid.querySelectorAll('.participant-option').forEach((opt) => {
+          const inp = opt.querySelector('input');
+          opt.classList.toggle('selected', inp.checked);
+        });
       });
     });
 
-    document.querySelectorAll('.vote-form').forEach((form) => {
-      form.addEventListener('submit', (e) => {
-        const name = masterInput ? masterInput.value.trim() : '';
-        if (!name) {
-          e.preventDefault();
-          alert("Merci d'indiquer votre nom complet avant de voter.");
-          masterInput?.focus();
-          masterInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    function collectSelections() {
+      const selections = [];
+      let incompleteGrid = null;
+
+      document.querySelectorAll('.participants-grid').forEach((grid) => {
+        const slots = parseInt(grid.dataset.slots, 10) || 1;
+        const categoryId = grid.dataset.categoryId;
+        const blankInput = grid.querySelector('.blank-input');
+
+        if (blankInput?.checked) {
+          selections.push({ category_id: categoryId, participant_ids: [] });
           return;
         }
-        form.querySelector('.voter-name-hidden').value = name;
-        setCookie(COOKIE_NAME, name);
+
+        const checked = Array.from(grid.querySelectorAll('input:checked:not(.blank-input)'));
+        if (checked.length !== slots) {
+          if (!incompleteGrid) incompleteGrid = grid;
+          return;
+        }
+        selections.push({ category_id: categoryId, participant_ids: checked.map((inp) => inp.value) });
       });
+
+      return { selections, incompleteGrid };
+    }
+
+    const errorMessages = {
+      CHAMPS_MANQUANTS: "Merci de remplir votre nom avant de valider.",
+      NOM_INVALIDE: "Le nom saisi n'est pas valide.",
+      DONNEES_INVALIDES: "Une erreur est survenue, merci de réessayer.",
+      VOTES_FERMES: "Les votes sont actuellement fermés.",
+      VOTANT_NON_AUTORISE: "Ce nom ne figure pas sur la liste des électeurs autorisés. Vérifiez l'orthographe ou contactez l'administration.",
+      DEJA_VOTE: "Vous avez déjà voté (au moins une des catégories a déjà été enregistrée).",
+      NOMBRE_PARTICIPANTS_INVALIDE: "Le nombre de participants sélectionnés ne correspond pas à ce qui est attendu.",
+      ERREUR_SERVEUR: "Erreur serveur, merci de réessayer dans quelques instants."
+    };
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = masterInput ? masterInput.value.trim() : '';
+      if (!name) {
+        alert("Merci d'indiquer votre nom complet avant de voter.");
+        masterInput?.focus();
+        return;
+      }
+
+      const { selections, incompleteGrid } = collectSelections();
+      if (incompleteGrid) {
+        alert("Merci de compléter votre sélection pour toutes les catégories (ou choisissez Vote Blanc).");
+        incompleteGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/vote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voter_name: name, selections })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          setCookie(COOKIE_NAME, name);
+          notif.classList.remove('hidden');
+          notif.classList.add('show');
+          form.querySelectorAll('input, button').forEach((el) => { el.disabled = true; });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          alert(errorMessages[data.error] || "Une erreur est survenue.");
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      } catch (err) {
+        alert("Erreur réseau, vérifiez votre connexion.");
+        if (submitBtn) submitBtn.disabled = false;
+      }
     });
-
-    const params = new URLSearchParams(window.location.search);
-    const notif = document.getElementById('success-notification');
-
-    if (params.get('success') === '1' && notif) {
-      notif.classList.remove('hidden');
-      notif.classList.add('show');
-      setTimeout(() => {
-        notif.classList.remove('show');
-        notif.classList.add('hidden');
-      }, 4000);
-      window.history.replaceState({}, '', '/');
-    }
-
-    const errorType = params.get('error');
-    if (errorType) {
-      let message = "Une erreur est survenue lors de l'envoi de votre vote. Merci de réessayer.";
-      if (errorType === 'deja_vote') message = "Vous avez déjà voté dans cette catégorie.";
-      else if (errorType === 'champs_manquants' || errorType === 'nom_invalide') message = "Merci de remplir votre nom avant de valider.";
-      else if (errorType === 'votes_fermes') message = "Les votes sont actuellement fermés.";
-      alert(message);
-      window.history.replaceState({}, '', '/');
-    }
   });
 </script>
 
@@ -263,7 +338,7 @@ const votingClosed = configData?.voting_closed || false;
 
   .participants-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.6rem;
-    max-height: 320px; overflow-y: auto; padding: 0.5rem; margin-bottom: 1rem;
+    max-height: 320px; overflow-y: auto; padding: 0.5rem; margin-bottom: 0.5rem;
     background: rgba(0,0,0,0.25); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
   }
   .participant-option {
@@ -272,12 +347,15 @@ const votingClosed = configData?.voting_closed || false;
     transition: all 0.2s ease; background: rgba(255,255,255,0.03);
   }
   .participant-option:hover { background: rgba(255,255,255,0.08); }
-  .participant-option input[type="radio"] { opacity: 0; width: 0; height: 0; position: absolute; }
+  .participant-option input { opacity: 0; width: 0; height: 0; position: absolute; }
   .participant-option.selected { border-color: var(--gold, #D4AF37); background: rgba(212, 175, 55, 0.15); }
+  .participant-option:has(input:disabled) { opacity: 0.35; cursor: not-allowed; }
   .participant-photo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
   .participant-label-name { font-size: 0.72rem; color: #e4e4e7; line-height: 1.1; word-break: break-word; }
   .blank-option { border-style: dashed; border-color: rgba(255,255,255,0.15); }
   .blank-option .blank-icon { font-size: 1.6rem; }
+
+  .submit-section { max-width: 800px; margin: 2rem auto 0 auto; padding: 0 1rem; }
 
   .notification {
     position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
