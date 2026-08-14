@@ -1,6 +1,8 @@
 import { supabase } from '../../lib/supabase';
 import { computeResults } from '../../lib/tally';
 
+const normalize = (s) => (s || '').trim().toLowerCase();
+
 export async function GET() {
   try {
     const { data: categories, error: catError } = await supabase
@@ -21,12 +23,12 @@ export async function GET() {
 
     const { results } = computeResults(categories, votes, participants);
 
-    const king = results.find(r => r.category === 'Roi du Bal');
-    const queen = results.find(r => r.category === 'Reine du Bal');
+    const king = results.find(r => normalize(r.category) === 'roi du bal');
+    const queen = results.find(r => normalize(r.category) === 'reine du bal');
 
     const otherCategories = {};
     for (const r of results) {
-      if (r.category === 'Roi du Bal' || r.category === 'Reine du Bal') continue;
+      if (normalize(r.category) === 'roi du bal' || normalize(r.category) === 'reine du bal') continue;
       otherCategories[r.category] = r.ranking;
     }
 
