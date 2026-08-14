@@ -425,6 +425,89 @@ if (!isAdminAuthenticated(Astro)) {
   });
 
   // --- CATÉGORIES ---
+  function renderCategoryItem(cat) {
+    const item = document.createElement('div');
+    item.className = 'category-item';
+
+    const span = document.createElement('span');
+    span.textContent = cat.slots > 1 ? `${cat.name} — ${cat.slots} participants` : cat.name;
+
+    const actions = document.createElement('div');
+    actions.className = 'category-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn-edit';
+    editBtn.title = 'Modifier le nombre de participants';
+    editBtn.textContent = '✏️';
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'btn-delete';
+    delBtn.title = 'Supprimer';
+    delBtn.textContent = '🗑️';
+    delBtn.dataset.id = cat.id;
+    delBtn.dataset.name = cat.name;
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    item.appendChild(span);
+    item.appendChild(actions);
+
+    editBtn.addEventListener('click', () => {
+      if (item.querySelector('.category-edit-form')) return;
+
+      const editForm = document.createElement('div');
+      editForm.className = 'category-edit-form';
+
+      const slotsInput = document.createElement('input');
+      slotsInput.type = 'number';
+      slotsInput.min = '1';
+      slotsInput.max = '5';
+      slotsInput.value = cat.slots || 1;
+
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.textContent = '💾';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = '✖️';
+
+      editForm.appendChild(slotsInput);
+      editForm.appendChild(saveBtn);
+      editForm.appendChild(cancelBtn);
+      item.appendChild(editForm);
+      span.style.display = 'none';
+      actions.style.display = 'none';
+
+      cancelBtn.addEventListener('click', () => {
+        editForm.remove();
+        span.style.display = '';
+        actions.style.display = '';
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const newSlots = parseInt(slotsInput.value, 10) || 1;
+        try {
+          const res = await fetch('/api/admin/categories', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ id: cat.id, slots: newSlots })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.success) loadCategories();
+          else showError(data.error || "Erreur lors de la modification.");
+        } catch (e) {
+          showError("Erreur réseau.");
+        }
+      });
+    });
+
+    return item;
+  }
+
   async function loadCategories() {
     const listEl = document.getElementById('categories-list');
     if (!listEl) return;
@@ -446,25 +529,7 @@ if (!isAdminAuthenticated(Astro)) {
         return;
       }
 
-      cats.forEach(cat => {
-        const item = document.createElement('div');
-        item.className = 'category-item';
-
-        const span = document.createElement('span');
-        span.textContent = cat.slots > 1 ? `${cat.name} — ${cat.slots} participants` : cat.name;
-
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'btn-delete';
-        delBtn.title = 'Supprimer';
-        delBtn.textContent = '🗑️';
-        delBtn.dataset.id = cat.id;
-        delBtn.dataset.name = cat.name;
-
-        item.appendChild(span);
-        item.appendChild(delBtn);
-        listEl.appendChild(item);
-      });
+      cats.forEach(cat => listEl.appendChild(renderCategoryItem(cat)));
     } catch (e) {
       listEl.innerHTML = '<p class="error-text">Impossible de contacter le serveur.</p>';
     }
@@ -587,6 +652,10 @@ if (!isAdminAuthenticated(Astro)) {
     background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; color: #fff;
   }
+  .category-actions { display: flex; gap: 6px; }
+  .category-edit-form { display: flex; align-items: center; gap: 6px; width: 100%; }
+  .category-edit-form input { width: 60px; margin-bottom: 0; padding: 6px 8px; }
+  .category-edit-form button { width: auto; padding: 6px 10px; margin-top: 0; }
 
   .form-container { display: flex; flex-direction: column; gap: 1.2rem; }
   .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
