@@ -53,7 +53,20 @@ if (!isAdminAuthenticated(Astro)) {
       <div class="danger-zone">
         <p class="danger-label">⚠️ Zone dangereuse</p>
         <button id="reset-votes-btn" class="btn-danger" type="button">🗑️ Réinitialiser tous les votes</button>
-        <p class="danger-hint">Supprime définitivement tous les votes enregistrés. Les participants et catégories restent intacts.</p>
+        <p class="danger-hint">Supprime définitivement tous les votes enregistrés (et les reçus de vote, pour permettre à tout le monde de revoter). Les participants et catégories restent intacts.</p>
+      </div>
+    </GlassCard>
+  </div>
+
+  <div class="voters-section">
+    <GlassCard title="🎓 Électeurs Autorisés">
+      <p class="hint-text">Seules les personnes figurant sur cette liste peuvent voter (comparaison insensible aux accents/majuscules). Un nom par ligne — pense à bien orthographier comme les élèves taperont leur nom.</p>
+      <form id="voters-form" class="voters-form">
+        <textarea id="new-voters-names" rows="4" placeholder="Marie Dupont&#10;Jean Martin&#10;..." required></textarea>
+        <button type="submit" class="gold-action-btn">➕ Ajouter à la liste</button>
+      </form>
+      <div id="voters-list" class="voters-list">
+        <p class="loading-text">Chargement de la liste...</p>
       </div>
     </GlassCard>
   </div>
@@ -91,8 +104,10 @@ if (!isAdminAuthenticated(Astro)) {
 
   <div class="categories-section">
     <GlassCard title="🏷️ Gérer les Catégories de Vote">
+      <p class="hint-text">Le nombre de participants définit combien de noms un votant doit choisir dans cette catégorie (1 pour Roi/Reine, 2 pour un duo, etc.).</p>
       <form id="category-form" class="category-form">
-        <input type="text" id="new-category-name" placeholder="Ex: Le/La plus drôle" required />
+        <input type="text" id="new-category-name" placeholder="Ex: Le plus beau duo" required />
+        <input type="number" id="new-category-slots" min="1" max="5" value="1" title="Nombre de participants requis" />
         <button type="submit" class="gold-action-btn">➕ Ajouter</button>
       </form>
       <div id="categories-list" class="categories-list">
@@ -184,6 +199,97 @@ if (!isAdminAuthenticated(Astro)) {
       }
     } catch (e) {
       showError("Erreur de connexion au serveur.");
+    }
+  });
+
+  // --- ÉLECTEURS AUTORISÉS ---
+  async function loadVoters() {
+    const listEl = document.getElementById('voters-list');
+    if (!listEl) return;
+
+    try {
+      const res = await fetch('/api/admin/voters', { credentials: 'same-origin' });
+      if (res.status === 401) { window.location.href = '/admin/login'; return; }
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        listEl.innerHTML = '<p class="error-text">Erreur de chargement.</p>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      const voters = data.voters || [];
+      if (voters.length === 0) {
+        listEl.innerHTML = '<p class="empty-text">Aucun électeur enregistré. Le vote est bloqué pour tout le monde tant que cette liste est vide.</p>';
+        return;
+      }
+
+      const countEl = document.createElement('p');
+      countEl.className = 'hint-text';
+      countEl.textContent = `${voters.length} électeur(s) enregistré(s).`;
+      listEl.appendChild(countEl);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'voters-chips';
+      voters.forEach((v) => {
+        const chip = document.createElement('span');
+        chip.className = 'voter-chip';
+        chip.textContent = v.name;
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'chip-delete';
+        del.textContent = '×';
+        del.title = 'Retirer';
+        del.dataset.id = v.id;
+        del.dataset.name = v.name;
+        chip.appendChild(del);
+
+        wrap.appendChild(chip);
+      });
+      listEl.appendChild(wrap);
+    } catch (e) {
+      listEl.innerHTML = '<p class="error-text">Impossible de contacter le serveur.</p>';
+    }
+  }
+
+  document.getElementById('voters-list')?.addEventListener('click', async (e) => {
+    const delBtn = e.target.closest('.chip-delete');
+    if (!delBtn) return;
+    const { id, name } = delBtn.dataset;
+    if (!confirm(`Retirer "${name}" de la liste des électeurs autorisés ?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/voters?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) loadVoters();
+      else showError(data.error || "Erreur lors de la suppression.");
+    } catch (e2) {
+      showError("Erreur de connexion.");
+    }
+  });
+
+  document.getElementById('voters-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const textarea = document.getElementById('new-voters-names');
+    const names = textarea.value.trim();
+    if (!names) return;
+
+    try {
+      const res = await fetch('/api/admin/voters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ names })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) { textarea.value = ''; loadVoters(); }
+      else showError(data.error || "Une erreur est survenue.");
+    } catch (err) {
+      showError("Erreur réseau.");
     }
   });
 
@@ -345,7 +451,7 @@ if (!isAdminAuthenticated(Astro)) {
         item.className = 'category-item';
 
         const span = document.createElement('span');
-        span.textContent = cat.name;
+        span.textContent = cat.slots > 1 ? `${cat.name} — ${cat.slots} participants` : cat.name;
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
@@ -386,7 +492,9 @@ if (!isAdminAuthenticated(Astro)) {
   document.getElementById('category-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = document.getElementById('new-category-name');
+    const slotsInput = document.getElementById('new-category-slots');
     const name = input.value.trim();
+    const slots = parseInt(slotsInput.value, 10) || 1;
     if (!name) return;
 
     try {
@@ -394,10 +502,10 @@ if (!isAdminAuthenticated(Astro)) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name, slots })
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success) { input.value = ''; loadCategories(); }
+      if (res.ok && data.success) { input.value = ''; slotsInput.value = '1'; loadCategories(); }
       else showError(data.error || "Une erreur est survenue.");
     } catch (err) {
       showError("Erreur réseau.");
@@ -406,6 +514,7 @@ if (!isAdminAuthenticated(Astro)) {
 
   document.addEventListener('DOMContentLoaded', () => {
     loadVotingStatus();
+    loadVoters();
     loadParticipants();
     loadCategories();
   });
@@ -446,12 +555,31 @@ if (!isAdminAuthenticated(Astro)) {
 
   .hint-text { color: #a1a1aa; font-size: 0.82rem; margin-top: -0.5rem; margin-bottom: 1rem; }
 
+  .voters-section { max-width: 1000px; margin: 0 auto 2rem auto; padding: 0 1rem; }
+  .voters-form { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
+  .voters-form textarea {
+    background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px;
+    color: #fff; padding: 10px 12px; font-family: inherit; resize: vertical;
+  }
+  .voters-list { max-height: 260px; overflow-y: auto; }
+  .voters-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .voter-chip {
+    display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 5px 8px 5px 12px;
+    border-radius: 20px; font-size: 0.82rem;
+  }
+  .chip-delete {
+    background: transparent; border: none; color: #ef4444; cursor: pointer;
+    font-size: 1rem; line-height: 1; padding: 0 4px;
+  }
+
   .admin-grid { max-width: 1000px; margin: 2rem auto; display: grid; grid-template-columns: 1fr; gap: 2rem; padding: 0 1rem; }
   @media (min-width: 850px) { .admin-grid { grid-template-columns: 1fr 1fr; } }
 
   .categories-section { max-width: 1000px; margin: 0 auto 2rem auto; padding: 0 1rem; }
   .category-form { display: flex; gap: 0.6rem; margin-bottom: 1.2rem; }
-  .category-form input { flex: 1; margin-bottom: 0; }
+  .category-form input[type="text"] { flex: 1; margin-bottom: 0; }
+  .category-form input[type="number"] { width: 70px; margin-bottom: 0; }
   .category-form button { width: auto; padding: 10px 16px; margin-top: 0; white-space: nowrap; }
   .categories-list { display: flex; flex-direction: column; gap: 0.6rem; max-height: 300px; overflow-y: auto; }
   .category-item {
@@ -464,7 +592,7 @@ if (!isAdminAuthenticated(Astro)) {
   .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
   .form-group label { font-size: 0.85rem; color: #d4d4d8; font-weight: 500; }
 
-  input[type="text"], input[type="file"] {
+  input[type="text"], input[type="file"], input[type="number"] {
     width: 100%; padding: 10px 12px; background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #fff; box-sizing: border-box;
   }
