@@ -100,6 +100,10 @@ if (!isAdminAuthenticated(Astro)) {
       </div>
     </GlassCard>
   </div>
+
+  <div class="footer-admin-credit">
+    <p class="credit-line">Réalisé par Winson KPOKPO en collaboration avec Trésor GNANSOUNOU</p>
+  </div>
 </Layout>
 
 <script is:inline>
@@ -499,4 +503,7 @@ if (!isAdminAuthenticated(Astro)) {
 
   .loading-text, .empty-text, .error-text { text-align: center; color: #a1a1aa; font-size: 0.9rem; padding: 1rem; }
   .hidden { display: none !important; }
+
+  .footer-admin-credit { text-align: center; margin-top: 3rem; padding-bottom: 2rem; }
+  .credit-line { color: rgba(255, 255, 255, 0.15); font-size: 0.72rem; letter-spacing: 0.5px; }
 </style>
