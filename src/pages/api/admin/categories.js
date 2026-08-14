@@ -62,6 +62,50 @@ export async function POST(context) {
   }
 }
 
+// PUT : modifier le nombre de participants requis (et éventuellement le nom)
+export async function PUT(context) {
+  const auth = requireAdmin(context);
+  if (!auth.ok) return auth.response;
+
+  try {
+    const body = await context.request.json();
+    const id = body.id;
+
+    if (!id) {
+      return new Response(JSON.stringify({ success: false, error: 'ID manquant' }), { status: 400 });
+    }
+
+    const updates = {};
+    if (body.slots !== undefined) {
+      updates.slots = Math.min(5, Math.max(1, parseInt(body.slots, 10) || 1));
+    }
+    if (typeof body.name === 'string' && body.name.trim()) {
+      updates.name = body.name.trim();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return new Response(JSON.stringify({ success: false, error: 'Aucune modification fournie' }), { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updates)
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      if (error.code === '23505') {
+        return new Response(JSON.stringify({ success: false, error: 'Ce nom de catégorie existe déjà' }), { status: 409 });
+      }
+      throw error;
+    }
+
+    return new Response(JSON.stringify({ success: true, category: data?.[0] || null }), { status: 200 });
+  } catch (err) {
+    return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500 });
+  }
+}
+
 export async function DELETE(context) {
   const auth = requireAdmin(context);
   if (!auth.ok) return auth.response;
