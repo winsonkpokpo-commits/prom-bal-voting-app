@@ -4,31 +4,25 @@ import GlassCard from '../components/GlassCard.astro';
 import GoldButton from '../components/GoldButton.astro';
 import { supabase } from '../lib/supabase';
 
-const { data: categoriesData, error: categoriesError } = await supabase
+const { data: categoriesData } = await supabase
   .from('categories')
   .select('id, name')
   .order('position', { ascending: true });
 
-const { data: participantsData, error: participantsError } = await supabase
+const { data: participantsData } = await supabase
   .from('participants')
   .select('id, name, photo_url')
   .order('name', { ascending: true });
 
-const { data: configData, error: configError } = await supabase
+const { data: configData } = await supabase
   .from('config')
   .select('voting_closed')
   .eq('id', 1)
   .single();
 
-if (categoriesError) console.error('Erreur chargement categories:', categoriesError);
-if (participantsError) console.error('Erreur chargement participants:', participantsError);
-if (configError) console.error('Erreur chargement config:', configError);
-
 const categories = categoriesData || [];
 const participants = participantsData || [];
 const votingClosed = configData?.voting_closed || false;
-
-const debugError = participantsError?.message || categoriesError?.message || configError?.message || null;
 ---
 
 <Layout title="Bal Masqué 2026 - CPEG Ste Bakhita">
@@ -36,12 +30,6 @@ const debugError = participantsError?.message || categoriesError?.message || con
   <div id="success-notification" class="notification hidden">
     ✅ Votre vote a bien été enregistré !
   </div>
-
-  {debugError && (
-    <div class="debug-banner">
-      ⚠️ Erreur technique (bannière temporaire, à retirer une fois corrigé) : {debugError}
-    </div>
-  )}
 
   <div class="hero-section">
     <svg viewBox="0 0 200 110" class="custom-mask-icon" xmlns="http://www.w3.org/2000/svg">
@@ -152,6 +140,7 @@ const debugError = participantsError?.message || categoriesError?.message || con
 
   <div class="footer-admin">
     <a href="/admin" class="admin-link">🔒 Administration</a>
+    <p class="credit-line">Réalisé par Winson KPOKPO en collaboration avec Trésor GNANSOUNOU</p>
   </div>
 
 </Layout>
@@ -237,11 +226,6 @@ const debugError = participantsError?.message || categoriesError?.message || con
 </script>
 
 <style>
-  .debug-banner {
-    max-width: 600px; margin: 1rem auto; padding: 1rem;
-    background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444;
-    color: #fecaca; border-radius: 8px; font-size: 0.85rem; text-align: center;
-  }
   .hero-section { text-align: center; padding: 2rem 1rem 1.5rem 1rem; position: relative; }
   .custom-mask-icon { width: 150px; height: auto; margin: 0 auto 1rem auto; display: block; animation: float-mask 4s ease-in-out infinite; }
   @keyframes float-mask {
@@ -307,5 +291,6 @@ const debugError = participantsError?.message || categoriesError?.message || con
   .footer-admin { text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
   .admin-link { color: rgba(255, 255, 255, 0.3); text-decoration: none; font-size: 0.85rem; transition: color 0.3s ease; }
   .admin-link:hover { color: var(--gold, #D4AF37); }
+  .credit-line { color: rgba(255, 255, 255, 0.15); font-size: 0.72rem; margin-top: 0.8rem; letter-spacing: 0.5px; }
   .empty-categories { text-align: center; color: #a1a1aa; padding: 2rem; }
 </style>
