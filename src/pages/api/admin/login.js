@@ -1,4 +1,4 @@
-import { checkPassword } from '../../../lib/admin-auth';
+import { checkPassword, createSessionToken } from '../../../lib/admin-auth';
 
 export async function POST({ request }) {
   try {
@@ -21,12 +21,14 @@ export async function POST({ request }) {
       });
     }
 
-    // Connexion réussie : création du cookie d'administration
+    // Connexion réussie : cookie signé, impossible à forger sans ADMIN_SECRET_KEY
+    const token = createSessionToken();
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Set-Cookie': 'admin_session=true; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400'
+        'Set-Cookie': `admin_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
       }
     });
   } catch (err) {
