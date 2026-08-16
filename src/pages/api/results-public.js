@@ -5,6 +5,21 @@ const normalize = (s) => (s || '').trim().toLowerCase();
 
 export async function GET() {
   try {
+    const { data: configData, error: configError } = await supabase
+      .from('config')
+      .select('voting_closed')
+      .eq('id', 1)
+      .single();
+    if (configError) throw configError;
+
+    if (!configData?.voting_closed) {
+      // Les votes sont encore en cours : on ne révèle rien.
+      return new Response(JSON.stringify({ closed: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const { data: categories, error: catError } = await supabase
       .from('categories')
       .select('id, name, slots')
@@ -33,6 +48,7 @@ export async function GET() {
     }
 
     return new Response(JSON.stringify({
+      closed: true,
       king: king ? king.ranking : [],
       queen: queen ? queen.ranking : [],
       categories: otherCategories
