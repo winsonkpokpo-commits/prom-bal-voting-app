@@ -1,5 +1,6 @@
 import { requireAdmin } from '../../lib/admin-auth';
 import { supabase } from '../../lib/supabase';
+import { computeResults } from '../../lib/tally';
 
 export async function GET(context) {
   const auth = requireAdmin(context);
@@ -8,13 +9,13 @@ export async function GET(context) {
   try {
     const { data: categories, error: catError } = await supabase
       .from('categories')
-      .select('id, name')
+      .select('id, name, slots')
       .order('position', { ascending: true });
     if (catError) throw catError;
 
     const { data: votes, error: votesError } = await supabase
       .from('votes')
-      .select('category_id, participant_id');
+      .select('category_id, participant_id, voter_slug');
     if (votesError) throw votesError;
 
     const { data: participants, error: partError } = await supabase
@@ -22,32 +23,11 @@ export async function GET(context) {
       .select('id, name, photo_url');
     if (partError) throw partError;
 
-    const participantLookup = {};
-    for (const p of participants || []) participantLookup[p.id] = p;
-
-    const tally = {};
-    let blankCount = 0;
-    for (const v of votes || []) {
-      if (!v.participant_id) { blankCount++; continue; }
-      tally[v.category_id] = tally[v.category_id] || {};
-      tally[v.category_id][v.participant_id] = (tally[v.category_id][v.participant_id] || 0) + 1;
-    }
-
-    const results = (categories || []).map(cat => {
-      const counts = tally[cat.id] || {};
-      const ranking = Object.entries(counts)
-        .map(([participantId, count]) => ({
-          name: participantLookup[participantId]?.name || 'Inconnu',
-          photo_url: participantLookup[participantId]?.photo_url || null,
-          count
-        }))
-        .sort((a, b) => b.count - a.count);
-      return { category: cat.name, ranking };
-    });
+    const { results, totalBallots, blankCount } = computeResults(categories, votes, participants);
 
     return new Response(JSON.stringify({
       success: true,
-      total: votes ? votes.length : 0,
+      total: totalBallots,
       blank: blankCount,
       results
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
