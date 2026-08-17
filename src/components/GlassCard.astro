@@ -13,26 +13,27 @@ const { title } = Astro.props;
 
 <style>
   .glass-card {
-    background: rgba(20, 20, 20, 0.8);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 12px;
-    border: 1px solid rgba(212, 175, 55, 0.15);
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(160deg, rgba(59, 16, 36, 0.25), rgba(12, 8, 16, 0.85));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 14px;
+    border: 1px solid rgba(241, 213, 146, 0.14);
+    padding: 1.75rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
     transition: transform 0.3s ease, border-color 0.3s ease;
   }
 
   .glass-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(212, 175, 55, 0.4);
+    transform: translateY(-3px);
+    border-color: rgba(241, 213, 146, 0.35);
   }
 
   .card-title {
     margin-top: 0;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-    padding-bottom: 0.8rem;
+    margin-bottom: 1.4rem;
+    font-size: 1.15rem;
+    border-bottom: 1px solid rgba(241, 213, 146, 0.18);
+    padding-bottom: 0.7rem;
   }
 </style>
