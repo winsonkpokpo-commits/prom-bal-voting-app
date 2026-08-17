@@ -23,6 +23,8 @@ const { data: configData } = await supabase
 const categories = categoriesData || [];
 const participants = participantsData || [];
 const votingClosed = configData?.voting_closed || false;
+
+const cornerSvg = `<svg viewBox="0 0 44 44"><path d="M2,32 V10 Q2,2 10,2 H32" fill="none" stroke="#D9B36A" stroke-width="1"/><path d="M2,32 Q12,30 14,40" fill="none" stroke="#D9B36A" stroke-width="0.8"/><path d="M32,2 Q34,12 42,14" fill="none" stroke="#D9B36A" stroke-width="0.8"/><circle cx="14" cy="40" r="1.6" fill="#F1D592"/><circle cx="42" cy="14" r="1.6" fill="#F1D592"/></svg>`;
 ---
 
 <Layout title="Bal Masqué 2026 - CPEG Ste Bakhita">
@@ -31,13 +33,18 @@ const votingClosed = configData?.voting_closed || false;
     ✅ Votre vote a bien été enregistré !
   </div>
 
-  <div class="hero-section">
+  <div class="hero-frame">
+    <span class="corner tl" aria-hidden="true" set:html={cornerSvg} />
+    <span class="corner tr" aria-hidden="true" set:html={cornerSvg} />
+    <span class="corner bl" aria-hidden="true" set:html={cornerSvg} />
+    <span class="corner br" aria-hidden="true" set:html={cornerSvg} />
+
     <svg viewBox="0 0 200 110" class="custom-mask-icon" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="goldFiligree" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FFF3B0" />
+          <stop offset="0%" stop-color="#F1D592" />
           <stop offset="30%" stop-color="#D4AF37" />
-          <stop offset="70%" stop-color="#AA7C11" />
+          <stop offset="70%" stop-color="#A6791F" />
           <stop offset="100%" stop-color="#FFD700" />
         </linearGradient>
         <radialGradient id="maskGlow" cx="50%" cy="50%" r="50%">
@@ -50,7 +57,7 @@ const votingClosed = configData?.voting_closed || false;
       </defs>
       <ellipse cx="100" cy="55" rx="85" ry="45" fill="url(#maskGlow)" />
       <path d="M 100,75 C 85,92 55,95 25,82 C 8,74 -2,55 3,38 C 8,18 32,18 65,30 C 82,36 94,44 100,48 C 106,44 118,36 135,30 C 168,18 192,18 197,38 C 202,55 192,74 175,82 C 145,95 115,92 100,75 Z"
-            fill="#09090C" stroke="url(#goldFiligree)" stroke-width="2.2" filter="url(#shadow3D)" />
+            fill="#0C0810" stroke="url(#goldFiligree)" stroke-width="2.2" filter="url(#shadow3D)" />
       <path d="M 32,54 Q 55,40 78,54 Q 55,68 32,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
       <path d="M 122,54 Q 145,40 168,54 Q 145,68 122,54 Z" fill="#000" stroke="url(#goldFiligree)" stroke-width="1.5" />
       <path d="M 100,12 L 106,28 L 100,24 L 94,28 Z" fill="url(#goldFiligree)" />
@@ -89,12 +96,19 @@ const votingClosed = configData?.voting_closed || false;
 
   {!votingClosed && categories.length > 0 && participants.length > 0 && (
     <form id="ballot-form" class="ballot-form">
+      <p id="form-error" class="form-error" role="alert"></p>
+
       <div class="voter-name-section">
         <GlassCard>
           <label class="input-label" for="voter-name-master">Votre nom complet :</label>
           <input type="text" id="voter-name-master" placeholder="Ex: Marie Dupont" autocomplete="name" />
           <p class="hint-small">Ce nom doit correspondre exactement à la liste des élèves autorisés à voter.</p>
         </GlassCard>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+        <p id="progress-label" class="progress-label">0 / {categories.length} catégorie{categories.length > 1 ? 's' : ''} complétée{categories.length > 1 ? 's' : ''}</p>
       </div>
 
       <div class="voting-container">
@@ -121,7 +135,7 @@ const votingClosed = configData?.voting_closed || false;
                     value={p.id}
                   />
                   <img
-                    src={p.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=D4AF37&color=fff`}
+                    src={p.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name)}&background=A6791F&color=F3EAE0`}
                     alt=""
                     class="participant-photo"
                   />
@@ -162,6 +176,7 @@ const votingClosed = configData?.voting_closed || false;
     const masterInput = document.getElementById('voter-name-master');
     const form = document.getElementById('ballot-form');
     const notif = document.getElementById('success-notification');
+    const errorBanner = document.getElementById('form-error');
 
     const getCookie = (key) => {
       const match = document.cookie.match(new RegExp('(?:^|; )' + key + '=([^;]*)'));
@@ -170,6 +185,14 @@ const votingClosed = configData?.voting_closed || false;
     const setCookie = (key, value) => {
       document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=86400; SameSite=Lax`;
     };
+
+    function showFormError(msg, scrollTarget) {
+      if (!errorBanner) { console.error(msg); return; }
+      errorBanner.textContent = msg;
+      errorBanner.classList.add('visible');
+      (scrollTarget || errorBanner).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => errorBanner.classList.remove('visible'), 6000);
+    }
 
     if (masterInput) {
       const savedName = getCookie(COOKIE_NAME);
@@ -189,6 +212,24 @@ const votingClosed = configData?.voting_closed || false;
         });
       });
     });
+
+    // Barre de progression du bulletin
+    function updateProgress() {
+      const grids = document.querySelectorAll('.participants-grid');
+      const total = grids.length;
+      let completed = 0;
+      grids.forEach((grid) => {
+        const slots = parseInt(grid.dataset.slots, 10) || 1;
+        const blankInput = grid.querySelector('.blank-input');
+        if (blankInput?.checked) { completed++; return; }
+        const checkedCount = grid.querySelectorAll('input:checked:not(.blank-input)').length;
+        if (checkedCount === slots) completed++;
+      });
+      const fill = document.getElementById('progress-fill');
+      const label = document.getElementById('progress-label');
+      if (fill) fill.style.width = total > 0 ? `${(completed / total) * 100}%` : '0%';
+      if (label) label.textContent = `${completed} / ${total} catégorie${total > 1 ? 's' : ''} complétée${completed > 1 ? 's' : ''}`;
+    }
 
     // Gestion des sélections (limite au nombre de slots, exclusivité du vote blanc)
     document.querySelectorAll('.participants-grid').forEach((grid) => {
@@ -216,8 +257,12 @@ const votingClosed = configData?.voting_closed || false;
           const inp = opt.querySelector('input');
           opt.classList.toggle('selected', inp.checked);
         });
+
+        updateProgress();
       });
     });
+
+    updateProgress();
 
     function collectSelections() {
       const selections = [];
@@ -259,15 +304,14 @@ const votingClosed = configData?.voting_closed || false;
       e.preventDefault();
       const name = masterInput ? masterInput.value.trim() : '';
       if (!name) {
-        alert("Merci d'indiquer votre nom complet avant de voter.");
+        showFormError("Merci d'indiquer votre nom complet avant de voter.", masterInput);
         masterInput?.focus();
         return;
       }
 
       const { selections, incompleteGrid } = collectSelections();
       if (incompleteGrid) {
-        alert("Merci de compléter votre sélection pour toutes les catégories (ou choisissez Vote Blanc).");
-        incompleteGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showFormError("Merci de compléter votre sélection pour toutes les catégories (ou choisissez Vote Blanc).", incompleteGrid);
         return;
       }
 
@@ -289,11 +333,11 @@ const votingClosed = configData?.voting_closed || false;
           form.querySelectorAll('input, button').forEach((el) => { el.disabled = true; });
           window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-          alert(errorMessages[data.error] || "Une erreur est survenue.");
+          showFormError(errorMessages[data.error] || "Une erreur est survenue.");
           if (submitBtn) submitBtn.disabled = false;
         }
       } catch (err) {
-        alert("Erreur réseau, vérifiez votre connexion.");
+        showFormError("Erreur réseau, vérifiez votre connexion.");
         if (submitBtn) submitBtn.disabled = false;
       }
     });
@@ -301,57 +345,89 @@ const votingClosed = configData?.voting_closed || false;
 </script>
 
 <style>
-  .hero-section { text-align: center; padding: 2rem 1rem 1.5rem 1rem; position: relative; }
-  .custom-mask-icon { width: 150px; height: auto; margin: 0 auto 1rem auto; display: block; animation: float-mask 4s ease-in-out infinite; }
+  .hero-frame {
+    position: relative;
+    text-align: center;
+    padding: 2.2rem 1.5rem 1.8rem;
+    margin: 1rem auto 1.5rem;
+    max-width: 480px;
+    border: 1px solid rgba(241, 213, 146, 0.18);
+    background: rgba(241, 213, 146, 0.025);
+  }
+  .corner { position: absolute; width: 38px; height: 38px; line-height: 0; }
+  .corner :global(svg) { width: 100%; height: 100%; display: block; }
+  .corner.tl { top: -1px; left: -1px; }
+  .corner.tr { top: -1px; right: -1px; transform: scaleX(-1); }
+  .corner.bl { bottom: -1px; left: -1px; transform: scaleY(-1); }
+  .corner.br { bottom: -1px; right: -1px; transform: scale(-1, -1); }
+
+  .custom-mask-icon { width: 130px; height: auto; margin: 0 auto 1rem auto; display: block; }
+  @media (prefers-reduced-motion: no-preference) {
+    .custom-mask-icon { animation: float-mask 7s ease-in-out infinite; }
+  }
   @keyframes float-mask {
-    0% { transform: translateY(0px) scale(1); }
-    50% { transform: translateY(-7px) scale(1.02); }
-    100% { transform: translateY(0px) scale(1); }
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
   }
+
   .school-badge {
-    display: inline-block; background: rgba(245, 208, 97, 0.1); color: var(--gold, #D4AF37);
-    padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;
-    letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(245, 208, 97, 0.3); margin-bottom: 1rem;
+    display: inline-block; background: rgba(241, 213, 146, 0.1); color: var(--gold-light);
+    padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(241, 213, 146, 0.3); margin-bottom: 1rem;
   }
-  .hero-section h1 {
-    font-size: 2.2rem; background: linear-gradient(135deg, #fff 30%, var(--gold, #D4AF37) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;
-  }
-  .subtitle { color: #a1a1aa; font-size: 0.95rem; max-width: 400px; margin: 0 auto 2rem auto; line-height: 1.5; }
+  .hero-frame h1 { font-size: 1.9rem; margin-bottom: 0.5rem; }
+  .subtitle { color: var(--smoke); font-size: 0.92rem; max-width: 380px; margin: 0 auto; line-height: 1.6; }
 
   .voting-closed-banner {
     max-width: 600px; margin: 2rem auto; padding: 1.5rem; text-align: center;
-    background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4);
-    border-radius: 12px; color: #fca5a5;
+    background: rgba(59, 16, 36, 0.35); border: 1px solid rgba(241, 213, 146, 0.25);
+    border-radius: 12px; color: var(--ivory);
   }
-  .voting-closed-banner a { color: var(--gold, #D4AF37); }
+  .voting-closed-banner a { color: var(--gold-light); }
+
+  .form-error {
+    display: none;
+    max-width: 800px; margin: 0 auto 1.3rem; padding: 12px 18px;
+    background: rgba(59, 16, 36, 0.4); border: 1px solid rgba(224, 122, 122, 0.4);
+    color: #f3c6c6; border-radius: 10px; font-size: 0.85rem; text-align: center;
+  }
+  .form-error.visible { display: block; }
 
   .voter-name-section { max-width: 600px; margin: 0 auto 1.5rem auto; padding: 0 1rem; }
-  .hint-small { font-size: 0.8rem; color: #a1a1aa; margin-top: -0.5rem; }
+  .hint-small { font-size: 0.8rem; color: var(--smoke); margin-top: -0.5rem; }
+
+  .progress-section { max-width: 800px; margin: 0 auto 1.6rem; padding: 0 1.1rem; }
+  .progress-track { height: 4px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold-deep), var(--gold-light)); transition: width 0.4s ease; }
+  .progress-label { text-align: center; font-size: 0.72rem; color: var(--smoke); margin-top: 0.5rem; letter-spacing: 0.5px; }
 
   .voting-container { max-width: 800px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 1.5rem; padding: 0 1rem; }
   @media (min-width: 768px) { .voting-container { grid-template-columns: 1fr 1fr; } }
 
-  .input-label { display: block; margin-bottom: 8px; color: #d4d4d8; font-size: 0.9rem; font-weight: 500; }
+  .input-label { display: block; margin-bottom: 8px; color: var(--ivory); font-size: 0.9rem; font-weight: 500; }
 
   .participant-search { margin-bottom: 1rem; }
 
   .participants-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 0.6rem;
     max-height: 320px; overflow-y: auto; padding: 0.5rem; margin-bottom: 0.5rem;
-    background: rgba(0,0,0,0.25); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
   }
   .participant-option {
     display: flex; flex-direction: column; align-items: center; gap: 0.35rem; padding: 0.5rem;
-    border-radius: 10px; border: 2px solid transparent; cursor: pointer; text-align: center;
-    transition: all 0.2s ease; background: rgba(255,255,255,0.03);
+    border-radius: 10px; border: 1px solid transparent; cursor: pointer; text-align: center;
+    transition: all 0.2s ease; background: rgba(255,255,255,0.02);
   }
-  .participant-option:hover { background: rgba(255,255,255,0.08); }
+  .participant-option:hover { background: rgba(241, 213, 146, 0.06); }
   .participant-option input { opacity: 0; width: 0; height: 0; position: absolute; }
-  .participant-option.selected { border-color: var(--gold, #D4AF37); background: rgba(212, 175, 55, 0.15); }
+  .participant-option.selected { border-color: rgba(241, 213, 146, 0.4); background: rgba(241, 213, 146, 0.08); }
   .participant-option:has(input:disabled) { opacity: 0.35; cursor: not-allowed; }
-  .participant-photo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2); }
-  .participant-label-name { font-size: 0.72rem; color: #e4e4e7; line-height: 1.1; word-break: break-word; }
+  .participant-photo { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.15); transition: all 0.2s ease; }
+  .participant-option.selected .participant-photo {
+    border: 2px solid var(--gold-light);
+    box-shadow: 0 0 0 3px rgba(241, 213, 146, 0.18);
+  }
+  .participant-label-name { font-size: 0.72rem; color: var(--ivory); line-height: 1.1; word-break: break-word; }
   .blank-option { border-style: dashed; border-color: rgba(255,255,255,0.15); }
   .blank-option .blank-icon { font-size: 1.6rem; }
 
@@ -359,8 +435,10 @@ const votingClosed = configData?.voting_closed || false;
 
   .notification {
     position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-    background: #4ade80; color: #064e3b; padding: 12px 24px; border-radius: 30px;
-    font-weight: bold; box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4); z-index: 1000;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+    color: #241705; padding: 14px 26px; border-radius: 30px;
+    font-weight: 600; letter-spacing: 0.3px;
+    box-shadow: 0 8px 28px rgba(241, 213, 146, 0.35); z-index: 1000;
     transition: opacity 0.5s ease, top 0.5s ease;
   }
   .hidden { opacity: 0; pointer-events: none; top: -50px; }
@@ -368,7 +446,7 @@ const votingClosed = configData?.voting_closed || false;
 
   .footer-admin { text-align: center; margin-top: 4rem; padding-bottom: 2rem; }
   .admin-link { color: rgba(255, 255, 255, 0.3); text-decoration: none; font-size: 0.85rem; transition: color 0.3s ease; }
-  .admin-link:hover { color: var(--gold, #D4AF37); }
+  .admin-link:hover { color: var(--gold-light); }
   .credit-line { color: rgba(255, 255, 255, 0.15); font-size: 0.72rem; margin-top: 0.8rem; letter-spacing: 0.5px; }
-  .empty-categories { text-align: center; color: #a1a1aa; padding: 2rem; }
+  .empty-categories { text-align: center; color: var(--smoke); padding: 2rem; }
 </style>
