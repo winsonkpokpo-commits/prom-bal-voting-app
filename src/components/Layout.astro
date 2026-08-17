@@ -11,7 +11,9 @@ const { title } = Astro.props;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} - Bal de Promo</title>
   </head>
@@ -25,18 +27,30 @@ const { title } = Astro.props;
 
 <style is:global>
   :root {
-    --gold: #F5D061; /* Un or plus "champagne" et dynamique */
-    --gold-glow: rgba(245, 208, 97, 0.4);
-    --bg-dark: #09090b; /* Noir très profond façon mode sombre iOS */
+    /* Direction "Bal Masqué" */
+    --ink: #0C0810;
+    --velvet: #3B1024;
+    --gold-light: #F1D592;
+    --gold-deep: #A6791F;
+    --ivory: #F3EAE0;
+    --smoke: #A89A8C;
+
+    --font-display: 'Cinzel', serif;
+    --font-body: 'Outfit', sans-serif;
+
+    /* Alias conservés pour compatibilité avec les pages pas encore mises à jour (admin, login, résultats) */
+    --gold: #D4AF37;
+    --gold-glow: rgba(241, 213, 146, 0.35);
+    --bg-dark: var(--ink);
     --glass-bg: rgba(20, 20, 25, 0.6);
   }
 
   html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif; /* Adieu la vieille police ! */
-    background-color: var(--bg-dark);
-    color: #f4f4f5;
+    font-family: var(--font-body);
+    background-color: var(--ink);
+    color: var(--ivory);
   }
 
   .background-overlay {
@@ -45,7 +59,9 @@ const { title } = Astro.props;
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at top, #1a1a1f 0%, var(--bg-dark) 100%);
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, var(--velvet) 0%, transparent 60%),
+      var(--ink);
     z-index: -1;
   }
 
@@ -56,68 +72,69 @@ const { title } = Astro.props;
     min-height: 100vh;
   }
 
-  /* Typographie modernisée */
+  /* Typographie */
   h1, h2, h3 {
-    color: var(--gold);
+    font-family: var(--font-display);
+    color: var(--gold-light);
     text-align: center;
-    font-weight: 800;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    text-shadow: 0 0 15px rgba(245, 208, 97, 0.2); /* Léger halo lumineux */
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-shadow: 0 0 20px rgba(241, 213, 146, 0.2);
   }
 
-  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-  h2 { font-size: 1.4rem; }
-  
-  /* Champs de recherche façon app mobile moderne */
-  input, select {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 16px 20px;
-    border-radius: 16px; /* Bords bien arrondis */
+  h1 { font-size: 2rem; margin-bottom: 0.5rem; letter-spacing: 2.5px; }
+  h2 { font-size: 1.3rem; letter-spacing: 1.5px; }
+
+  /* Champs de saisie */
+  input, select, textarea {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--ivory);
+    border: 1px solid rgba(241, 213, 146, 0.18);
+    padding: 14px 18px;
+    border-radius: 10px;
     width: 100%;
     box-sizing: border-box;
     margin-bottom: 1rem;
-    font-family: inherit;
+    font-family: var(--font-body);
     font-size: 1rem;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
   }
 
-  input:focus, select:focus {
-    border-color: var(--gold);
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--gold-light);
     outline: none;
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 15px var(--gold-glow);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(241, 213, 146, 0.12);
   }
 
-  /* Transformation totale de TOUS les boutons (adieu les rectangles blancs) */
+  /* Bouton par défaut — discret. Les CTA marquants utilisent GoldButton / .gold-action-btn */
   button {
-    background: linear-gradient(135deg, #F5D061 0%, #E6B02E 100%);
-    color: #111;
-    border: none;
-    padding: 16px 24px;
-    border-radius: 50px; /* Boutons "Pillule" ultra stylés */
-    font-weight: 800;
-    font-size: 1rem;
-    letter-spacing: 1px;
+    background: rgba(241, 213, 146, 0.08);
+    color: var(--ivory);
+    border: 1px solid rgba(241, 213, 146, 0.28);
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.95rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    text-transform: uppercase;
     width: 100%;
-    box-shadow: 0 4px 20px var(--gold-glow);
     margin-top: 10px;
   }
 
-  button:active {
-    transform: scale(0.96); /* Effet quand on clique/tape dessus */
+  button:hover {
+    background: rgba(241, 213, 146, 0.15);
+    border-color: var(--gold-light);
   }
 
-  /* Style spécial pour les boutons "Vote Blanc" pour ne pas voler la vedette au bouton principal */
-  button:contains("Vote Blanc"), .vote-blanc {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #a1a1aa !important;
-    box-shadow: none !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .vote-blanc {
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: var(--smoke) !important;
+    border: 1px dashed rgba(255, 255, 255, 0.15) !important;
   }
 </style>
